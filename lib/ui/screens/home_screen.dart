@@ -79,12 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentPage = 1;
       _updatePaginatedVehicles();
     });
-
-    if (_filteredVehicles.isEmpty && (_searchQuery.isNotEmpty || _selectedCategory != AppConstants.allCategory)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showNoResultsDialog();
-      });
-    }
   }
 
   void _onSearchChanged(String query) {
@@ -93,6 +87,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchQuery = query;
         _applyFilters();
       });
+    }
+  }
+
+  void _onSearchSubmitted(String query) {
+    _applyFilters();
+    if (_filteredVehicles.isEmpty && query.isNotEmpty) {
+      _showNoResultsDialog();
     }
   }
 
@@ -152,6 +153,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _priceRange = priceRange;
           _selectedTransmission = transmission;
           _applyFilters();
+
+          if (_filteredVehicles.isEmpty) {
+            _showNoResultsDialog();
+          }
         },
       ),
     ).then((_) {
@@ -229,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
+                        onSubmitted: _onSearchSubmitted,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
                           prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
@@ -267,21 +273,6 @@ class _HomeScreenState extends State<HomeScreen> {
         body: ListView(
           controller: _scrollController,
           children: [
-            const SizedBox(height: 16),
-            CampaignSection(onViewAll: _showAllCampaigns),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: OutlinedButton.icon(
-                onPressed: _openFaqScreen,
-                icon: const Icon(Icons.help_outline_rounded),
-                label: const Text('Sıkça Sorulan Sorular'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: AppTextStyles.bodyLarge,
-                ),
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: DateSelector(
@@ -315,6 +306,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
+            CampaignSection(onViewAll: _showAllCampaigns),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: OutlinedButton.icon(
+                onPressed: _openFaqScreen,
+                icon: const Icon(Icons.help_outline_rounded),
+                label: const Text('Sıkça Sorulan Sorular'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  textStyle: AppTextStyles.bodyLarge,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -409,6 +415,7 @@ class _ListItemAnimationState extends State<_ListItemAnimation> with TickerProvi
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
+    // Kademeli animasyon için gecikme
     Future.delayed(Duration(milliseconds: widget.index * 100), () {
       if (mounted) {
         _controller.forward();
