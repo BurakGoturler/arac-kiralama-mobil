@@ -1,7 +1,8 @@
-import 'package:car_rental_mvp/data/mock/vehicles_data.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
+import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:car_rental_mvp/ui/screens/faq_screen.dart';
 import 'package:car_rental_mvp/ui/screens/vehicle_detail_screen.dart';
+import 'package:car_rental_mvp/ui/screens/admin/admin_login_screen.dart';
 import 'package:car_rental_mvp/ui/widgets/campaign_bottom_sheet.dart';
 import 'package:car_rental_mvp/ui/widgets/campaign_section.dart';
 import 'package:car_rental_mvp/ui/widgets/date_selector.dart';
@@ -20,34 +21,35 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Controller'lar
+  final FirestoreService _firestoreService = FirestoreService();
+
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
+  late final Stream<List<Vehicle>> _vehiclesStream;
 
-  // Filtreleme ve Tarih Durumları
   DateTime? _startDate;
   DateTime? _endDate;
+
   String _selectedCategory = AppConstants.allCategory;
   RangeValues _priceRange = const RangeValues(500, 5000);
   String _selectedTransmission = 'Hepsi';
 
-  // Arama Durumları
   String _searchQuery = '';
 
-  // Sayfalama Durumları
   int _currentPage = 1;
   static const int _itemsPerPage = 4;
 
-  // Araç Listeleri
-  late List<Vehicle> _filteredVehicles = [];
-  late List<Vehicle> _paginatedVehicles = [];
+  // Firestore'dan gelen tüm araçlar
+  List<Vehicle> _allVehicles = [];
+  List<Vehicle> _filteredVehicles = [];
+  List<Vehicle> _paginatedVehicles = [];
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _scrollController = ScrollController();
-    _applyFilters();
+    _vehiclesStream = _firestoreService.getVehiclesStream();
   }
 
   @override
@@ -58,10 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _applyFilters() {
-    var tempVehicles = VehiclesMock.vehicles.where((v) {
-      final categoryMatch = _selectedCategory == AppConstants.allCategory || v.category == _selectedCategory;
-      final priceMatch = v.dailyPrice >= _priceRange.start && v.dailyPrice <= _priceRange.end;
-      final transmissionMatch = _selectedTransmission == 'Hepsi' || v.transmission == _selectedTransmission;
+    var tempVehicles = _allVehicles.where((v) {
+      final categoryMatch =
+          _selectedCategory == AppConstants.allCategory || v.category == _selectedCategory;
+      final priceMatch =
+          v.dailyPrice >= _priceRange.start && v.dailyPrice <= _priceRange.end;
+      final transmissionMatch =
+          _selectedTransmission == 'Hepsi' || v.transmission == _selectedTransmission;
       return categoryMatch && priceMatch && transmissionMatch;
     }).toList();
 
@@ -83,10 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSearchChanged(String query) {
     if (_searchQuery != query) {
-      setState(() {
-        _searchQuery = query;
-        _applyFilters();
-      });
+      _searchQuery = query;
+      _applyFilters();
     }
   }
 
@@ -101,25 +104,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
     if (startIndex >= _filteredVehicles.length) {
-      setState(() {
-        _paginatedVehicles = [];
-      });
+      _paginatedVehicles = [];
       return;
     }
-    setState(() {
-      _paginatedVehicles = _filteredVehicles.sublist(
-          startIndex,
-          endIndex > _filteredVehicles.length ? _filteredVehicles.length : endIndex);
-    });
+    _paginatedVehicles = _filteredVehicles.sublist(
+      startIndex,
+      endIndex > _filteredVehicles.length ? _filteredVehicles.length : endIndex,
+    );
   }
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0.0,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      _scrollController.animateTo(0.0,
+          duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
     }
   }
 
@@ -148,7 +145,11 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedCategory: _selectedCategory,
         priceRange: _priceRange,
         selectedTransmission: _selectedTransmission,
-        onApply: ({required String category, required RangeValues priceRange, required String transmission}) {
+        onApply: ({
+          required String category,
+          required RangeValues priceRange,
+          required String transmission,
+        }) {
           _selectedCategory = category;
           _priceRange = priceRange;
           _selectedTransmission = transmission;
@@ -182,6 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openAdminLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+    );
+  }
+
   void _showNoResultsDialog() {
     showDialog(
       context: context,
@@ -193,9 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               child: const Text('Tamam'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         );
@@ -218,18 +224,33 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
-                child: SizedBox(
-                  height: 40,
-                  child: Image.asset(
-                    'assets/images/logo-uzun.png',
-                    fit: BoxFit.contain,
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 40,
+                        child: Image.asset(
+                          'assets/images/logo-uzun.png',
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerLeft,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _openAdminLogin,
+                      child: const Icon(
+                        Icons.admin_panel_settings_outlined,
+                        size: 22,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Row(
                 children: [
                   Expanded(
-                    child: Container(
+                    child: SizedBox(
                       height: 44,
                       child: TextField(
                         controller: _searchController,
@@ -247,12 +268,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _onSearchChanged('');
-                                  },
-                                )
+                            icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
                               : null,
                         ),
                       ),
@@ -270,83 +291,126 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: const [],
         ),
-        body: ListView(
-          controller: _scrollController,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: DateSelector(
-                startDate: _startDate,
-                endDate: _endDate,
-                onSelectStart: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: _startDate ?? DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null) {
-                    setState(() {
-                      _startDate = date;
-                    });
-                  }
-                },
-                onSelectEnd: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: _endDate ?? _startDate ?? DateTime.now(),
-                    firstDate: _startDate ?? DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null) {
-                    setState(() {
-                      _endDate = date;
-                    });
-                  }
-                },
-              ),
-            ),
-            CampaignSection(onViewAll: _showAllCampaigns),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: OutlinedButton.icon(
-                onPressed: _openFaqScreen,
-                icon: const Icon(Icons.help_outline_rounded),
-                label: const Text('Sıkça Sorulan Sorular'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: AppTextStyles.bodyLarge,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _paginatedVehicles.length,
-              itemBuilder: (context, index) {
-                final vehicle = _paginatedVehicles[index];
-                return _ListItemAnimation(
-                  index: index,
-                  child: VehicleCard(
-                    vehicle: vehicle,
-                    onTap: () => _onVehicleTap(vehicle),
+        // ── BODY: StreamBuilder ile Firestore'dan veri çekiyoruz ──
+        body: StreamBuilder<List<Vehicle>>(
+          stream: _vehiclesStream,  // ← ESKİ: _firestoreService.getVehiclesStream()
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && _allVehicles.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Hata: ${snapshot.error}'));
+            }
+
+            // Stream'den gelen yeni veriyi al
+            if (snapshot.hasData) {
+              _allVehicles = snapshot.data!;
+              // Filtre uygula ama setState çağırmadan (build içindeyiz)
+              var tempVehicles = _allVehicles.where((v) {
+                final categoryMatch =
+                    _selectedCategory == AppConstants.allCategory ||
+                        v.category == _selectedCategory;
+                final priceMatch = v.dailyPrice >= _priceRange.start &&
+                    v.dailyPrice <= _priceRange.end;
+                final transmissionMatch = _selectedTransmission == 'Hepsi' ||
+                    v.transmission == _selectedTransmission;
+                return categoryMatch && priceMatch && transmissionMatch;
+              }).toList();
+
+              if (_searchQuery.isNotEmpty) {
+                tempVehicles = tempVehicles.where((vehicle) {
+                  final searchTerm = _searchQuery.toLowerCase().replaceAll(' ', '');
+                  final vehicleName = vehicle.name.toLowerCase().replaceAll(' ', '');
+                  final vehicleBrand = vehicle.brand.toLowerCase().replaceAll(' ', '');
+                  return vehicleName.contains(searchTerm) ||
+                      vehicleBrand.contains(searchTerm);
+                }).toList();
+              }
+
+              _filteredVehicles = tempVehicles;
+              _updatePaginatedVehicles();
+            }
+
+            return ListView(
+              controller: _scrollController,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: DateSelector(
+                    startDate: _startDate,
+                    endDate: _endDate,
+                    onSelectStart: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() => _startDate = date);
+                      }
+                    },
+                    onSelectEnd: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? _startDate ?? DateTime.now(),
+                        firstDate: _startDate ?? DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() => _endDate = date);
+                      }
+                    },
                   ),
-                );
-              },
-            ),
-            _buildPaginationControls(),
-          ],
+                ),
+                CampaignSection(onViewAll: _showAllCampaigns),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: OutlinedButton.icon(
+                    onPressed: _openFaqScreen,
+                    icon: const Icon(Icons.help_outline_rounded),
+                    label: const Text('Sıkça Sorulan Sorular'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      textStyle: AppTextStyles.bodyLarge,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_paginatedVehicles.isEmpty && _allVehicles.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Center(child: Text('Filtrelerinize uygun araç bulunamadı.')),
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _paginatedVehicles.length,
+                    itemBuilder: (context, index) {
+                      final vehicle = _paginatedVehicles[index];
+                      return _ListItemAnimation(
+                        index: index,
+                        child: VehicleCard(
+                          vehicle: vehicle,
+                          onTap: () => _onVehicleTap(vehicle),
+                        ),
+                      );
+                    },
+                  ),
+                _buildPaginationControls(),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildPaginationControls() {
-    if (_totalPages <= 1) {
-      return const SizedBox.shrink();
-    }
+    if (_totalPages <= 1) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
@@ -356,12 +420,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: _currentPage > 1
                 ? () {
-                setState(() {
-                  _currentPage--;
-                  _updatePaginatedVehicles();
-                  _scrollToTop();
-                });
-              }
+              setState(() {
+                _currentPage--;
+                _updatePaginatedVehicles();
+                _scrollToTop();
+              });
+            }
                 : null,
             child: const Text('Önceki'),
           ),
@@ -369,12 +433,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: _currentPage < _totalPages
                 ? () {
-                setState(() {
-                  _currentPage++;
-                  _updatePaginatedVehicles();
-                  _scrollToTop();
-                });
-              }
+              setState(() {
+                _currentPage++;
+                _updatePaginatedVehicles();
+                _scrollToTop();
+              });
+            }
                 : null,
             child: const Text('Sonraki'),
           ),
@@ -384,6 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// ── Animasyon widget'ı (değişmedi) ──
 class _ListItemAnimation extends StatefulWidget {
   final int index;
   final Widget child;
@@ -394,7 +459,8 @@ class _ListItemAnimation extends StatefulWidget {
   State<_ListItemAnimation> createState() => _ListItemAnimationState();
 }
 
-class _ListItemAnimationState extends State<_ListItemAnimation> with TickerProviderStateMixin {
+class _ListItemAnimationState extends State<_ListItemAnimation>
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -406,20 +472,15 @@ class _ListItemAnimationState extends State<_ListItemAnimation> with TickerProvi
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
-
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-
-    // Kademeli animasyon için gecikme
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+        );
     Future.delayed(Duration(milliseconds: widget.index * 100), () {
-      if (mounted) {
-        _controller.forward();
-      }
+      if (mounted) _controller.forward();
     });
   }
 

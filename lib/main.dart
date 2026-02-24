@@ -1,32 +1,26 @@
+import 'package:car_rental_mvp/ui/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'core/theme/app_theme.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-import 'core/theme/app_theme.dart';
-import 'ui/screens/splash_screen.dart';
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-
-  await initializeDateFormatting('tr_TR', null);
-
-  // Native splash'ın Flutter frame'ini bastırmasını önle
-  await Future.delayed(const Duration(milliseconds: 200));
-
-  runApp(const CarRentalApp());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await initializeDateFormatting('tr_TR', null);  // ← BU SATIRI EKLE
+  runApp(const MyApp());
 }
 
-class CarRentalApp extends StatelessWidget {
-  const CarRentalApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Car Rental MVP',
+      title: 'Şenbayrak Araç Kiralama',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/ui/widgets/date_selector.dart';
 import 'package:car_rental_mvp/ui/widgets/primary_button.dart';
@@ -155,7 +156,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       onSelectStart: () => _pickDate(isStart: true),
                       onSelectEnd: () => _pickDate(isStart: false),
                     ),
-                    const SizedBox(height: 120), // Alt çubuk için boşluk
+                    const SizedBox(height: 160), // Alt çubuk için boşluk
                   ],
                 ),
               ),
@@ -241,11 +242,19 @@ class _DetailSliverAppBar extends StatelessWidget {
                     },
                     child: Hero(
                       tag: imagePath,
-                      child: Image.asset(
-                        imagePath,
+                      child: CachedNetworkImage(
+                        imageUrl: imagePath,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.background,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.directions_car, size: 64, color: AppColors.textMuted),
+                        ),
                       ),
                     ),
                   ),
@@ -348,7 +357,12 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 child: Center(
                   child: Hero(
                     tag: widget.imagePaths[index],
-                    child: Image.asset(widget.imagePaths[index], fit: BoxFit.contain),
+                    child: CachedNetworkImage(
+                      imageUrl: widget.imagePaths[index],
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                    ),
                   ),
                 ),
               );

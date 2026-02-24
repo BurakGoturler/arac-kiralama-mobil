@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:flutter/material.dart';
 
@@ -81,11 +82,21 @@ class _CardImage extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Image.asset(
-              vehicle.imagePath,
+            CachedNetworkImage(
+              imageUrl: vehicle.imagePath,
               height: 200,
               width: double.infinity,
               fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                height: 200,
+                color: AppColors.background,
+                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+              errorWidget: (context, url, error) => Container(
+                height: 200,
+                color: AppColors.background,
+                child: const Icon(Icons.directions_car, size: 48, color: AppColors.textMuted),
+              ),
             ),
             // Gradient overlay
             Positioned.fill(

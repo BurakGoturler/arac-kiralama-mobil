@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "717851854165",
+    "project_id": "senbayrak-arac-kiralama",
+    "storage_bucket": "senbayrak-arac-kiralama.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:717851854165:android:57cb81f198b3c5b2e45bdc",
+        "android_client_info": {
+          "package_name": "com.example.car_rental_mvp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_Gq5ghPTphRfE5eRWu3U_Bq0pnTXt1Qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
