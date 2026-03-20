@@ -33,13 +33,18 @@ class CampaignCard extends StatelessWidget {
             Text(
               campaign.title,
               style: AppTextStyles.headingMedium.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
-            Text(
-              campaign.description,
-              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withOpacity(0.8)),
+            Expanded(
+              child: Text(
+                campaign.description,
+                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withOpacity(0.8)),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const Spacer(),
             SizedBox(
               width: 120,
               child: PrimaryButton(

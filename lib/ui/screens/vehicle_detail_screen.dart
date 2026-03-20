@@ -538,14 +538,13 @@ class _SpecsGridSection extends StatelessWidget {
         children: [
           Text('Özellikler', style: AppTextStyles.headingMedium),
           const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 3.0,
-            children: specs.map((s) => _SpecGridCell(spec: s)).toList(),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: specs.map((s) => SizedBox(
+              width: (MediaQuery.of(context).size.width - 80) / 2,
+              child: _SpecGridCell(spec: s),
+            )).toList(),
           ),
         ],
       ),

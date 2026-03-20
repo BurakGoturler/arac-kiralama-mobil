@@ -238,23 +238,22 @@ class _SpecsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
         _SpecChip(
           icon: Icons.settings_outlined,
           label: vehicle.transmissionShort,
         ),
-        const SizedBox(width: 8),
         _SpecChip(
           emoji: vehicle.fuelIcon,
           label: vehicle.fuelType,
         ),
-        const SizedBox(width: 8),
         _SpecChip(
           icon: Icons.people_outline_rounded,
           label: '${vehicle.seats} Koltuk',
         ),
-        const SizedBox(width: 8),
         _SpecChip(
           icon: Icons.calendar_today_rounded,
           label: '${vehicle.year}',
