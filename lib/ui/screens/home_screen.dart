@@ -1,8 +1,12 @@
+import 'package:car_rental_mvp/ui/screens/profile/profile_screen.dart';
+import 'package:car_rental_mvp/ui/screens/favorites/favorites_screen.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
+import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/faq_screen.dart';
 import 'package:car_rental_mvp/ui/screens/vehicle_detail_screen.dart';
-import 'package:car_rental_mvp/ui/screens/admin/admin_login_screen.dart';
+import 'package:car_rental_mvp/ui/screens/auth/login_screen.dart';
+import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:car_rental_mvp/ui/widgets/campaign_bottom_sheet.dart';
 import 'package:car_rental_mvp/ui/widgets/campaign_section.dart';
 import 'package:car_rental_mvp/ui/widgets/date_selector.dart';
@@ -22,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final AuthService _authService = AuthService();
 
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
@@ -44,12 +49,23 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Vehicle> _filteredVehicles = [];
   List<Vehicle> _paginatedVehicles = [];
 
+  // Auth durumu
+  bool _isAdmin = false;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _scrollController = ScrollController();
     _vehiclesStream = _firestoreService.getVehiclesStream();
+    _checkAdminRole();
+  }
+
+  Future<void> _checkAdminRole() async {
+    if (_authService.isLoggedIn) {
+      final isAdmin = await _authService.isCurrentUserAdmin();
+      if (mounted) setState(() => _isAdmin = isAdmin);
+    }
   }
 
   @override
@@ -183,11 +199,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openAdminLogin() {
+  void _goToLogin() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    ).then((_) {
+      // Login ekranından döndüğünde admin rolünü tekrar kontrol et
+      _checkAdminRole();
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _goToAdminDashboard() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
     );
+  }
+
+  void _goToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    );
+  }
+
+  void _goToFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+    );
+  }
+
+  Future<void> _logout() async {
+    await _authService.signOut();
+    if (mounted) {
+      setState(() => _isAdmin = false);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+      );
+    }
   }
 
   void _showNoResultsDialog() {
@@ -236,14 +289,60 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: _openAdminLogin,
-                      child: const Icon(
-                        Icons.admin_panel_settings_outlined,
-                        size: 22,
-                        color: Colors.grey,
+                    // ── Auth durumuna göre ikonlar ──
+                    if (!_authService.isLoggedIn)
+                      GestureDetector(
+                        onTap: _goToLogin,
+                        child: const Icon(
+                          Icons.login_rounded,
+                          size: 22,
+                          color: Colors.grey,
+                        ),
+                      )
+                    else ...[
+                      if (_isAdmin)
+                        GestureDetector(
+                          onTap: _goToAdminDashboard,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(
+                              Icons.admin_panel_settings_outlined,
+                              size: 22,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: _goToFavorites,
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Icon(
+                            Icons.favorite_border,
+                            size: 22,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
-                    ),
+                      GestureDetector(
+                        onTap: _goToProfile,
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Icon(
+                            Icons.person_outline,
+                            size: 22,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _logout,
+                        child: const Icon(
+                          Icons.logout_rounded,
+                          size: 22,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -293,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         // ── BODY: StreamBuilder ile Firestore'dan veri çekiyoruz ──
         body: StreamBuilder<List<Vehicle>>(
-          stream: _vehiclesStream,  // ← ESKİ: _firestoreService.getVehiclesStream()
+          stream: _vehiclesStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting && _allVehicles.isEmpty) {
               return const Center(child: CircularProgressIndicator());
@@ -364,6 +463,87 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ),
+                // ── Favorilerim Kartı (sadece giriş yapmış kullanıcıya) ──
+                if (_authService.isLoggedIn)
+                  StreamBuilder<List<String>>(
+                    stream: _firestoreService.getFavoriteIdsStream(
+                        _authService.currentUser!.uid),
+                    builder: (context, snapshot) {
+                      final count = snapshot.data?.length ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: InkWell(
+                          onTap: _goToFavorites,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.red.shade400,
+                                  Colors.pink.shade400,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.pink.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.25),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.favorite,
+                                      color: Colors.white, size: 24),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Favorilerim',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        count == 0
+                                            ? 'Henüz favori aracınız yok'
+                                            : '$count araç',
+                                        style: TextStyle(
+                                          color:
+                                          Colors.white.withOpacity(0.9),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios,
+                                    color: Colors.white, size: 18),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                if (_authService.isLoggedIn) const SizedBox(height: 16),
                 CampaignSection(onViewAll: _showAllCampaigns),
                 const SizedBox(height: 16),
                 Padding(

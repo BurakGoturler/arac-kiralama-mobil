@@ -1,6 +1,5 @@
 import 'package:car_rental_mvp/data/models/campaign_model.dart';
 import 'package:flutter/material.dart';
-
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 import 'primary_button.dart';

@@ -34,13 +34,42 @@ class AppConstants {
   }) =>
       'Merhaba, mobil uygulamanız üzerinden $vehicleName için $startDate - $endDate tarihleri arasında rezervasyon yapmak istiyorum.';
 
+
+
+  // ── WhatsApp Çoklu Numara ─────────────────────────────────
+  static const List<Map<String, String>> whatsappNumbers = [
+    {'label': 'Hat 1 - Ofis', 'phone': '905303739446'},
+    // {'label': 'Hat 2 - Mehmet Bey', 'phone': '905303739446'},
+    // {'label': 'Hat 3 - Ahmet Bey', 'phone': '905303739446'},
+  ];
+
+// WhatsApp mesaj şablonu (müşteri bilgili + alım yeri versiyon)
+  static String whatsappMessageWithCustomer({
+    required String vehicleName,
+    required String startDate,
+    required String endDate,
+    required String customerName,
+    required String customerSurname,
+    required String customerTc,
+    required String customerPhone,
+    required String pickupLocation,
+  }) =>
+      'Merhaba, mobil uygulamanız üzerinden rezervasyon yapmak istiyorum.\n\n'
+          'Ad Soyad: $customerName $customerSurname\n'
+          'TC No: $customerTc\n'
+          'Telefon: $customerPhone\n'
+          'Araç: $vehicleName\n'
+          'Tarih: $startDate - $endDate\n'
+          'Alım Yeri: $pickupLocation';
+
+
   // ── Vehicle Categories ────────────────────────────────────
   static const List<String> categories = [
     'Hepsi',
     'SUV',
     'Sedan',
     'Luxury',
-    'Electric',
+    // 'Electric',
     'Van',
     'Sports'
   ];

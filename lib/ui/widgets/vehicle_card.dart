@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:flutter/material.dart';
 
+import 'package:car_rental_mvp/data/services/auth_service.dart';
+import 'package:car_rental_mvp/data/services/firestore_service.dart';
+
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
@@ -149,9 +152,66 @@ class _CardImage extends StatelessWidget {
                   ),
                 ),
               ),
+            // ── Favori Kalp İkonu ──
+            // Featured olan araçlarda rozetin altında, diğerlerinde sağ üstte
+            Positioned(
+              top: vehicle.isFeatured ? 48 : 14,
+              right: 14,
+              child: _FavoriteButton(vehicleId: vehicle.id),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Favori Kalp Butonu ──
+class _FavoriteButton extends StatelessWidget {
+  final String vehicleId;
+
+  const _FavoriteButton({required this.vehicleId});
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+    final firestoreService = FirestoreService();
+    final uid = authService.currentUser?.uid;
+
+    // Giriş yapmamışsa kalp gösterme
+    if (uid == null) return const SizedBox.shrink();
+
+    return StreamBuilder<List<String>>(
+      stream: firestoreService.getFavoriteIdsStream(uid),
+      builder: (context, snapshot) {
+        final favoriteIds = snapshot.data ?? [];
+        final isFavorite = favoriteIds.contains(vehicleId);
+
+        return GestureDetector(
+          onTap: () async {
+            await firestoreService.toggleFavorite(uid, vehicleId);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.92),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.red : Colors.grey,
+              size: 20,
+            ),
+          ),
+        );
+      },
     );
   }
 }
