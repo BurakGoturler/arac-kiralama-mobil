@@ -4,6 +4,10 @@ import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
 import 'home_screen.dart';
 
+import 'package:car_rental_mvp/data/services/auth_service.dart';
+import 'package:car_rental_mvp/ui/screens/auth/email_verification_screen.dart';
+import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -30,15 +34,15 @@ class _SplashScreenState extends State<SplashScreen>
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _exitController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
 
@@ -73,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen>
     _textController.addStatusListener((status) {
       debugPrint('TEXT ANIMATION: $status');
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 3600), () {
+        Future.delayed(const Duration(milliseconds: 900), () {
           if (mounted) {
             _exitController.forward();
           }
@@ -86,12 +90,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (status == AnimationStatus.completed) {
         if (mounted) {
           SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (_, __, ___) => const HomeScreen(),
-              transitionDuration: Duration.zero,
-            ),
-          );
+          _navigateBasedOnAuth();
         }
       }
     });
@@ -100,6 +99,60 @@ class _SplashScreenState extends State<SplashScreen>
     _logoController.forward();
     debugPrint('SPLASH: forward() çağrıldı');
   }
+
+  /// Açılıştaki ağ çağrıları için üst sınır.
+  /// Bu süre aşılırsa kullanıcı bekletilmez, misafir modunda ana sayfaya alınır.
+  static const Duration _agZamanAsimi = Duration(seconds: 8);
+
+  void _git(Widget ekran) {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => ekran,
+        transitionDuration: Duration.zero,
+      ),
+    );
+  }
+
+  Future<void> _navigateBasedOnAuth() async {
+    final authService = AuthService();
+
+    // Giriş yapılmamışsa → HomeScreen (misafir modu, görüntüleme serbest)
+    if (!authService.isLoggedIn) {
+      _git(const HomeScreen());
+      return;
+    }
+
+    // Buradan sonrası ağ erişimi gerektirir. Bağlantı yoksa veya yavaşsa
+    // uygulamanın açılış ekranında takılı kalmaması için tüm çağrılar
+    // hem zaman aşımına hem hata yakalamaya bağlanır.
+    try {
+      // Email doğrulanmamışsa → Doğrulama ekranı
+      await authService.reloadUser().timeout(_agZamanAsimi);
+      if (!mounted) return;
+
+      if (!authService.isEmailVerified) {
+        _git(const EmailVerificationScreen());
+        return;
+      }
+
+      // Admin mi? Role'e göre yönlendir
+      final isAdmin =
+          await authService.isCurrentUserAdmin().timeout(_agZamanAsimi);
+      if (!mounted) return;
+
+      _git(isAdmin ? const AdminDashboardScreen() : const HomeScreen());
+    } catch (e) {
+      // Ağ hatası, zaman aşımı veya oturumun sunucuda geçersiz kılınması.
+      // Kullanıcıyı kilitlemek yerine uygulamayı açıyoruz; oturumu varsa
+      // ana sayfada normal şekilde kullanmaya devam eder.
+      debugPrint('SPLASH: yönlendirme sırasında hata — $e');
+      _git(const HomeScreen());
+    }
+  }
+
+
+
 
   @override
   void dispose() {
@@ -115,24 +168,42 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: AppColors.primary,
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                width: 120,
-                height: 120,
-              ),
-              const SizedBox(height: 28),
-              Text(
-                AppConstants.appName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
+          // Çıkış animasyonu tüm içeriği kapsar.
+          child: FadeTransition(
+            opacity: _exitFade,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo: yumuşak bir belirme + büyüme
+                FadeTransition(
+                  opacity: _logoFade,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 120,
+                      height: 120,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 28),
+                // Başlık: aşağıdan kayarak belirir
+                FadeTransition(
+                  opacity: _textFade,
+                  child: SlideTransition(
+                    position: _textSlide,
+                    child: Text(
+                      AppConstants.appName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

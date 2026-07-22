@@ -42,10 +42,11 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
 
   // Görsel verileri
   Uint8List? _mainImageBytes;
-  String? _mainImageName;
   String _existingImageUrl = '';
-  List<Uint8List> _galleryImageBytesList = [];
-  List<String> _galleryImageNames = [];
+  final List<Uint8List> _galleryImageBytesList = [];
+  // Galeri listesinde önizleme ve silme için dosya adları tutulur;
+  // bayt listesiyle aynı sırada kalmalıdır.
+  final List<String> _galleryImageNames = [];
   List<String> _existingGalleryUrls = [];
 
   bool get _isEditing => widget.vehicle != null;
@@ -103,7 +104,6 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         final bytes = await picked.readAsBytes();
         setState(() {
           _mainImageBytes = bytes;
-          _mainImageName = picked.name;
         });
       }
     } catch (e) {

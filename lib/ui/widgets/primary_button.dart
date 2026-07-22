@@ -60,7 +60,6 @@ class _PrimaryButtonState extends State<PrimaryButton>
       case PrimaryButtonVariant.ghost:
         return AppColors.primaryLight;
       case PrimaryButtonVariant.primary:
-      default:
         return AppColors.primary;
     }
   }
@@ -73,7 +72,6 @@ class _PrimaryButtonState extends State<PrimaryButton>
         return AppColors.primary;
       case PrimaryButtonVariant.whatsapp:
       case PrimaryButtonVariant.primary:
-      default:
         return AppColors.textOnPrimary;
     }
   }

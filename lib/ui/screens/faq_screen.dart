@@ -1,7 +1,6 @@
 import 'package:car_rental_mvp/data/mock/faq_mock_data.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../widgets/faq_item.dart';
 
 class FaqScreen extends StatelessWidget {
