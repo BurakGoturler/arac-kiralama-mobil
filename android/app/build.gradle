@@ -25,8 +25,18 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// Release imzalama bilgileri android/key.properties dosyasından okunur.
+// Bu dosya gizlidir ve git'e girmez; yoksa release build debug anahtarına düşer.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
 android {
-    namespace = "com.example.car_rental_mvp"
+    namespace = "com.senbayrak.arackiralama"
     compileSdk = 36
     ndkVersion = "27.0.12077973" // 25.1.8937393
 
@@ -40,16 +50,36 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.car_rental_mvp"
+        applicationId = "com.senbayrak.arackiralama"
         minSdkVersion = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            // key.properties yoksa (ör. CI ortamı hazır değilse) debug imzasına düşer.
+            // Mağazaya yüklenecek paket mutlaka release imzasıyla üretilmelidir.
+            signingConfig = keystorePropertiesFile.exists()
+                    ? signingConfigs.release
+                    : signingConfigs.debug
+
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
         }
     }
 }

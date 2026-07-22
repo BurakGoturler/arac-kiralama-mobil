@@ -23,10 +23,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Zaten giriş yapılmışsa direkt dashboard'a git
+    // Zaten giriş yapılmışsa rolü doğrulanmış olmak kaydıyla dashboard'a git.
+    // Sadece "giriş yapılmış mı" kontrolü yeterli DEĞİLDİR; aksi hâlde
+    // sıradan bir müşteri de yönetim paneline girebilir.
     if (_authService.isLoggedIn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToDashboard();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final isAdmin = await _authService.isCurrentUserAdmin();
+        if (!mounted) return;
+        if (isAdmin) {
+          _navigateToDashboard();
+        } else {
+          setState(() {
+            _errorMessage = 'Bu hesabın yönetim paneline erişim yetkisi yok.';
+          });
+        }
       });
     }
   }
@@ -61,7 +71,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         email: _emailController.text,
         password: _passwordController.text,
       );
-      if (mounted) _navigateToDashboard();
+
+      // Giriş başarılı olsa bile yönetici değilse panele sokulmaz.
+      final isAdmin = await _authService.isCurrentUserAdmin();
+      if (!mounted) return;
+
+      if (isAdmin) {
+        _navigateToDashboard();
+      } else {
+        await _authService.signOut();
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Bu hesabın yönetim paneline erişim yetkisi yok.';
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Giriş başarısız. E-posta veya şifre hatalı.';

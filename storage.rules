@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════
+//  Şenbayrak Araç Kiralama — Firebase Storage Güvenlik Kuralları
+//
+//      firebase deploy --only storage
+// ═══════════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Storage kurallarından Firestore'a bakarken firestore.get() /
+    // firestore.exists() kullanılmalıdır; düz get()/exists() geçersizdir.
+    function yonetici() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        (
+          firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        )
+      );
+    }
+
+    // ── Araç görselleri ──────────────────────────────────────────
+    // Görseller misafir kullanıcılara da gösterildiği için okuma serbest.
+    // Yükleme yalnızca yöneticiye ait; tür ve boyut sınırı zorunlu.
+    match /vehicles/{vehicleId}/{fileName} {
+      allow read: if true;
+      allow write: if yonetici()
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if yonetici();
+    }
+
+    // ── Diğer her şey ────────────────────────────────────────────
+    // Denetimde tespit edilen "herkes dosya listeleyebiliyor" durumunu kapatır.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,149 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════
+//  Şenbayrak Araç Kiralama — Firestore Güvenlik Kuralları
+//
+//  Temel ilke: Varsayılan olarak her şey yasak. İzinler tek tek verilir.
+//  Bu dosya projenin kaynak kodunun parçasıdır; konsoldan elle
+//  değiştirilmemeli, değişiklikler burada yapılıp deploy edilmelidir:
+//
+//      firebase deploy --only firestore:rules
+// ═══════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Yardımcı fonksiyonlar ────────────────────────────────────
+
+    function girisYapmis() {
+      return request.auth != null;
+    }
+
+    // Rezervasyon gibi kritik işlemler için e-posta doğrulaması şart.
+    function dogrulanmis() {
+      return girisYapmis() && request.auth.token.email_verified == true;
+    }
+
+    // Yönetici kontrolü.
+    // Önce Custom Claim'e bakılır (ileride atanırsa ek okuma maliyeti olmaz),
+    // yoksa users dokümanındaki role alanına düşülür.
+    // Bu güvenlidir çünkü aşağıdaki kurallar kullanıcının kendi role alanını
+    // değiştirmesini kesin olarak engeller.
+    function yonetici() {
+      return girisYapmis() && (
+        request.auth.token.admin == true ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        )
+      );
+    }
+
+    function kendisi(uid) {
+      return girisYapmis() && request.auth.uid == uid;
+    }
+
+    // ── users ────────────────────────────────────────────────────
+    // Kullanıcı yalnızca kendi profilini görür ve düzenler.
+    // Yönetici tüm profilleri okuyabilir ama düzenleyemez.
+    match /users/{uid} {
+
+      allow read: if kendisi(uid) || yonetici();
+
+      // Kayıt anında oluşturma: yalnızca kendi dokümanını, rolü 'customer'
+      // olarak oluşturabilir. Kendini yönetici yapması engellenir.
+      //
+      // sozlesmeOnayi == true şartı, aydınlatma metni onayı alınmadan
+      // hesap açılamamasını sunucu tarafında garanti eder (KVKK — ispat yükü).
+      //
+      // T.C. Kimlik Numarası bu koleksiyonda hiç saklanmadığı için
+      // ilgili bir alan da beklenmez.
+      allow create: if kendisi(uid)
+                    && request.resource.data.role == 'customer'
+                    && request.resource.data.sozlesmeOnayi == true
+                    && request.resource.data.acikRizaVerildi is bool
+                    && request.resource.data.email is string
+                    && request.resource.data.name is string
+                    && request.resource.data.surname is string
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.surname.size() <= 60
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() <= 20;
+
+      // Güncelleme: role alanı KESİNLİKLE değiştirilemez.
+      // Bu satır, yönetici yetkisinin tüm güvenlik temelidir.
+      allow update: if kendisi(uid)
+                    && request.resource.data.role == resource.data.role
+                    && (
+                      !('favoriteVehicleIds' in request.resource.data) ||
+                      request.resource.data.favoriteVehicleIds.size() <= 200
+                    );
+
+      // Hesap silme (KVKK m.7 — silme hakkı). Kullanıcı kendi kaydını siler.
+      allow delete: if kendisi(uid);
+    }
+
+    // ── vehicles / campaigns / pickup_locations ──────────────────
+    // Herkes okuyabilir (misafir kullanıcılar araçlara göz atabilmeli).
+    // Yalnızca yönetici yazabilir.
+    match /vehicles/{id} {
+      allow read: if true;
+      allow write: if yonetici();
+    }
+
+    match /campaigns/{id} {
+      allow read: if true;
+      allow write: if yonetici();
+    }
+
+    match /pickup_locations/{id} {
+      allow read: if true;
+      allow write: if yonetici();
+    }
+
+    // ── whatsapp_logs ────────────────────────────────────────────
+    // ÖNEMLİ: Denetim öncesinde bu koleksiyona kimlik doğrulaması
+    // olmadan kayıt eklenebiliyordu. Aşağıdaki kurallar bunu kapatır.
+    match /whatsapp_logs/{id} {
+
+      // Yalnızca yönetici okuyabilir; kullanıcı kendi kayıtlarını görebilir.
+      allow read: if yonetici()
+                  || (girisYapmis() && resource.data.userId == request.auth.uid);
+
+      // Oluşturma: e-postası doğrulanmış kullanıcı, YALNIZCA kendi adına
+      // ve YALNIZCA açık rıza vermişse.
+      //
+      // T.C. Kimlik Numarası kaydedilmediği için 'customerTc' alanının
+      // yazılması açıkça yasaklanır; ileride yanlışlıkla eklenmesi hâlinde
+      // yazma işlemi reddedilir.
+      allow create: if dogrulanmis()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && !('customerTc' in request.resource.data)
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid))
+                         .data.acikRizaVerildi == true
+                    && request.resource.data.vehicleName is string
+                    && request.resource.data.vehicleName.size() <= 120
+                    && request.resource.data.customerName.size() <= 60
+                    && request.resource.data.customerSurname.size() <= 60
+                    && request.resource.data.customerPhone.size() <= 20
+                    && request.resource.data.pickupLocation.size() <= 120
+                    && request.resource.data.keys().size() <= 15;
+
+      // Kayıtlar sonradan değiştirilemez.
+      allow update: if false;
+
+      // Silme: yönetici (imha politikası) veya kaydın sahibi.
+      // Sahibin silebilmesi, hesap silme akışının KVKK m.7 kapsamında
+      // kişisel verileri geride bırakmaması için gereklidir.
+      allow delete: if yonetici()
+                    || (girisYapmis() && resource.data.userId == request.auth.uid);
+    }
+
+    // ── Diğer her şey ────────────────────────────────────────────
+    // Yeni bir koleksiyon eklendiğinde kural yazılmadığı sürece erişilemez.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

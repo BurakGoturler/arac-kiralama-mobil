@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyA_Gq5ghPTphRfE5eRWu3U_Bq0pnTXt1Qg',
-    appId: '1:717851854165:android:57cb81f198b3c5b2e45bdc',
+    appId: '1:717851854165:android:29364381fd48f50de45bdc',
     messagingSenderId: '717851854165',
     projectId: 'senbayrak-arac-kiralama',
     storageBucket: 'senbayrak-arac-kiralama.firebasestorage.app',
@@ -60,11 +60,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCeQmAbHjg3vmtsVt9q5xhPwKWTtRX4t1w',
-    appId: '1:717851854165:ios:7ebda106e50fc3a3e45bdc',
+    appId: '1:717851854165:ios:3e73efef32e41e31e45bdc',
     messagingSenderId: '717851854165',
     projectId: 'senbayrak-arac-kiralama',
     storageBucket: 'senbayrak-arac-kiralama.firebasestorage.app',
-    iosBundleId: 'com.example.carRentalMvp',
+    iosBundleId: 'com.senbayrak.arackiralama',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

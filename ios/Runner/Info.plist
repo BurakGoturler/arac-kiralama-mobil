@@ -52,5 +52,22 @@
 		<string>whatsapp</string>
 	</array>
 
+	<!-- image_picker izin açıklamaları.
+	     Bu anahtarlar olmadan iOS, galeri/kamera açılmak istendiğinde
+	     uygulamayı anında sonlandırır ve App Store yüklemesi ITMS-90683
+	     hatasıyla reddedilir. Metinler kullanıcıya izin diyaloğunda gösterilir. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Araç görsellerini yükleyebilmek için fotoğraf galerinize erişim izni gerekiyor.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Araç fotoğrafı çekebilmek için kamera erişim izni gerekiyor.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Görselleri cihazınıza kaydedebilmek için fotoğraf galerinize erişim izni gerekiyor.</string>
+
+	<!-- Uygulama yalnızca HTTPS ve platformun standart şifrelemesini kullanıyor.
+	     Bu anahtar olmadan her TestFlight/App Store yüklemesinde ihracat
+	     uyumluluğu sorusu elle cevaplanmak zorunda kalır. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 </dict>
 </plist>

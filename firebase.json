@@ -1,1 +1,36 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"senbayrak-arac-kiralama","appId":"1:717851854165:android:57cb81f198b3c5b2e45bdc","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"senbayrak-arac-kiralama","configurations":{"android":"1:717851854165:android:57cb81f198b3c5b2e45bdc","ios":"1:717851854165:ios:7ebda106e50fc3a3e45bdc","macos":"1:717851854165:ios:7ebda106e50fc3a3e45bdc","web":"1:717851854165:web:defd62ecedb2178de45bdc","windows":"1:717851854165:web:bab5e46aea8c823ce45bdc"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "senbayrak-arac-kiralama",
+          "appId": "1:717851854165:android:29364381fd48f50de45bdc",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "senbayrak-arac-kiralama",
+          "appId": "1:717851854165:ios:3e73efef32e41e31e45bdc",
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "senbayrak-arac-kiralama",
+          "configurations": {
+            "android": "1:717851854165:android:29364381fd48f50de45bdc",
+            "ios": "1:717851854165:ios:3e73efef32e41e31e45bdc"
+          }
+        }
+      }
+    }
+  }
+}

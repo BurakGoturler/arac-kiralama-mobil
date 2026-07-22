@@ -1,4 +1,4 @@
-package com.example.car_rental_mvp
+package com.senbayrak.arackiralama
 
 import io.flutter.embedding.android.FlutterActivity
 

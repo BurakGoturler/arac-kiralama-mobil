@@ -43,3 +43,21 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Firebase servis hesabı anahtarı — ASLA git'e girmemeli ──
+# Veritabanının tam yetkili anahtarıdır (tools/kvkk_tc_temizle.js kullanır).
+tools/serviceAccountKey.json
+**/serviceAccountKey.json
+
+# ── İmzalama anahtarları — ASLA git'e girmemeli ──
+# key.properties şifreleri, *.jks/*.keystore ise upload anahtarını içerir.
+# Bu anahtar kaybolursa uygulamaya bir daha güncelleme yayınlanamaz;
+# ayrı ve güvenli bir yerde yedekleyin (git değil).
+android/key.properties
+*.jks
+*.keystore
+
+# NOT: android/app/google-services.json ve ios/Runner/GoogleService-Info.plist
+# bilinçli olarak takip EDİLİYOR. Bunlar gizli anahtar değildir (zaten
+# uygulamanın içinde dağıtılırlar) ve depoda bulunmaları sayesinde yeni bir
+# klon ek işlem gerektirmeden derlenir. Asıl gizli olanlar aşağıdadır.
