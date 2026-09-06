@@ -1,9 +1,11 @@
 import 'package:car_rental_mvp/data/models/campaign_model.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/helpers.dart';
 import '../../widgets/primary_button.dart';
 
 class AdminCampaignFormScreen extends StatefulWidget {
@@ -88,11 +90,14 @@ class _AdminCampaignFormScreenState extends State<AdminCampaignFormScreen> {
         id: widget.campaign?.id ?? '',
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
+        // Kampanya kodunun formda bir alanı yok. Burada aktarılmazsa
+        // model null üretiyor ve her düzenleme mevcut kodu siliyordu.
+        code: widget.campaign?.code,
         gradientColors: selectedColors,
         buttonText: _buttonTextController.text.trim(),
         whatsappMessage: _whatsappMsgController.text.trim(),
         isActive: _isActive,
-        order: int.tryParse(_orderController.text.trim()) ?? 0,
+        order: AppHelpers.tamSayiCoz(_orderController.text) ?? 0,
       );
 
       if (_isEditing) {
@@ -186,8 +191,13 @@ class _AdminCampaignFormScreenState extends State<AdminCampaignFormScreen> {
                         child: TextFormField(
                           controller: _orderController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'Sıra (0, 1, 2...)',
+                            helperText: 'Küçük sayı önce gösterilir',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -240,40 +250,48 @@ class _AdminCampaignFormScreenState extends State<AdminCampaignFormScreen> {
                   const SizedBox(height: 24),
 
                   // ── Önizleme ──
+                  // Yalnızca bu blok, başlık/açıklama alanlarını dinleyerek
+                  // yeniden çizilir. Eskiden hiçbir şey dinlemediği için
+                  // önizleme yazarken güncellenmiyor, ancak renk seçimi gibi
+                  // başka bir setState tetiklendiğinde geç geliyordu.
                   Text('Önizleme', style: AppTextStyles.headingMedium),
                   const SizedBox(height: 12),
-                  Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      gradient: LinearGradient(
-                        colors: _gradientOptions[_selectedGradientIndex],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  AnimatedBuilder(
+                    animation: Listenable.merge(
+                        [_titleController, _descriptionController]),
+                    builder: (context, _) => Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        gradient: LinearGradient(
+                          colors: _gradientOptions[_selectedGradientIndex],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                       ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _titleController.text.isEmpty
-                              ? 'Başlık'
-                              : _titleController.text,
-                          style: AppTextStyles.headingMedium
-                              .copyWith(color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _descriptionController.text.isEmpty
-                              ? 'Açıklama'
-                              : _descriptionController.text,
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: Colors.white70),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _titleController.text.isEmpty
+                                ? 'Başlık'
+                                : _titleController.text,
+                            style: AppTextStyles.headingMedium
+                                .copyWith(color: Colors.white),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _descriptionController.text.isEmpty
+                                ? 'Açıklama'
+                                : _descriptionController.text,
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: Colors.white70),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

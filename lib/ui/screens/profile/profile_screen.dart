@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/legal_texts.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../widgets/primary_button.dart';
 
@@ -110,10 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _goToChangePassword() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-    );
+    context.sayfayaGit(const ChangePasswordScreen());
   }
 
   /// Açık rızayı verir veya geri alır (KVKK — rıza her zaman geri alınabilir).
@@ -228,11 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       // Hesap silindi — tüm gezinme geçmişi temizlenip girişe dönülür.
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      context.sayfayaSifirla(const LoginScreen());
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Hesabınız ve verileriniz silindi.')),
       );

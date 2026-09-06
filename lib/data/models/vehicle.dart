@@ -94,7 +94,6 @@ class Vehicle {
       'features': features,
       'isAvailable': isAvailable,
       'isFeatured': isFeatured,
-      'createdAt': FieldValue.serverTimestamp(),
     };
   }
 }

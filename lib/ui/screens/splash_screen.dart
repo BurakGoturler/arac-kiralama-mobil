@@ -104,12 +104,22 @@ class _SplashScreenState extends State<SplashScreen>
   /// Bu süre aşılırsa kullanıcı bekletilmez, misafir modunda ana sayfaya alınır.
   static const Duration _agZamanAsimi = Duration(seconds: 8);
 
+  /// Açılış ekranından hedef ekrana geçer.
+  ///
+  /// Geçiş süresi eskiden sıfırdı: içerik solduktan sonra bir an boş mavi
+  /// ekran kalıyor, ardından hedef ekran birden beliriyordu. Kısa bir
+  /// çapraz geçiş bu sıçramayı yumuşatır. Kaydırma kullanılmaz — açılışta
+  /// yön hissi vermek istemiyoruz, yalnızca solma.
   void _git(Widget ekran) {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => ekran,
-        transitionDuration: Duration.zero,
+        transitionDuration: const Duration(milliseconds: 320),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../navigation/app_page_route.dart';
+
 class AppColors {
   // Backgrounds
   static const Color background = Color(0xFFF7F8FA);
@@ -145,6 +147,19 @@ class AppTheme {
       splashColor: AppColors.primary.withOpacity(0.08),
       highlightColor: Colors.transparent,
       visualDensity: VisualDensity.adaptivePlatformDensity,
+
+      // Sayfa geçişleri tek noktadan yönetilir. Doğrudan MaterialPageRoute
+      // kullanan kod da AppPageRoute ile aynı yumuşak geçişi alır, böylece
+      // uygulamada iki farklı geçiş hissi oluşmaz.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: AppPageTransitionsBuilder(),
+          TargetPlatform.iOS: AppPageTransitionsBuilder(),
+          TargetPlatform.windows: AppPageTransitionsBuilder(),
+          TargetPlatform.macOS: AppPageTransitionsBuilder(),
+          TargetPlatform.linux: AppPageTransitionsBuilder(),
+        },
+      ),
 
       textTheme: TextTheme(
         displayLarge: AppTextStyles.displayLarge,

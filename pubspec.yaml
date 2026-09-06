@@ -26,6 +26,9 @@ dependencies:
   cloud_firestore: ^5.5.0
   firebase_auth: ^5.5.1
   firebase_storage: ^12.4.1
+  # App Check kurulmadığında Firestore/Storage her istekte
+  # "No AppCheckProvider installed" uyarısı basar ve yer tutucu token gönderir.
+  firebase_app_check: ^0.3.2
 
 dev_dependencies:
   flutter_test:

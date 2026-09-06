@@ -3,9 +3,20 @@ import '../models/vehicle.dart';
 import '../models/campaign_model.dart';
 import '../models/user_model.dart';
 import '../models/pickup_location_model.dart';
+import 'storage_service.dart';
 
 class FirestoreService {
+  // Tek örnek (singleton). Ekranlar `FirestoreService()` yazmaya devam eder
+  // ama hepsi aynı nesneyi paylaşır; her ekranın kendi kopyasını tutması
+  // gereksiz nesne yaratıyordu.
+  static final FirestoreService _instance = FirestoreService._internal();
+
+  factory FirestoreService() => _instance;
+
+  FirestoreService._internal();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final StorageService _storage = StorageService();
 
   // ═══════════════════════════════════════════════════════
   // ARAÇLAR
@@ -27,22 +38,44 @@ class FirestoreService {
     return null;
   }
 
-  /// Yeni araç ekle — direkt Map kabul eder
-  Future<String> addVehicleData(Map<String, dynamic> data) async {
-    data['createdAt'] = FieldValue.serverTimestamp();
-    final docRef = await _db.collection('vehicles').add(data);
-    return docRef.id;
+  /// Henüz yazılmamış bir araç için doküman kimliği üretir.
+  ///
+  /// Görseller Storage'a `vehicles/{id}/...` altına yüklendiği için kimliğe
+  /// yazma işleminden ÖNCE ihtiyaç var. Eskiden bu yüzden önce boş bir
+  /// doküman oluşturuluyor, sonra görseller yüklenip doküman güncelleniyordu;
+  /// yükleme ortada başarısız olursa geriye görselsiz bir hayalet araç
+  /// kalıyordu. Kimliği baştan üretmek tek ve atomik bir yazma sağlar.
+  String yeniAracKimligi() => _db.collection('vehicles').doc().id;
+
+  /// Aracı tek yazmada oluşturur.
+  ///
+  /// [data] çağıranın map'idir ve DEĞİŞTİRİLMEZ; zaman damgaları kopyaya
+  /// eklenir.
+  Future<void> createVehicle(String id, Map<String, dynamic> data) async {
+    await _db.collection('vehicles').doc(id).set({
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Araç güncelle
   Future<void> updateVehicle(String id, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _db.collection('vehicles').doc(id).update(data);
+    await _db.collection('vehicles').doc(id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
-  /// Araç sil
+  /// Aracı ve Storage'daki görsellerini birlikte siler.
+  ///
+  /// Eskiden yalnızca doküman siliniyordu; `vehicles/{id}/` altındaki
+  /// görseller Storage'da öksüz kalıp yer işgal etmeye devam ediyordu.
+  /// Görsel silme başarısız olsa bile doküman silinmiş sayılır — kullanıcı
+  /// açısından araç listeden kalkmalıdır.
   Future<void> deleteVehicle(String id) async {
     await _db.collection('vehicles').doc(id).delete();
+    await _storage.deleteVehicleImages(id);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -88,15 +121,21 @@ class FirestoreService {
 
   /// Yeni kampanya ekle
   Future<String> addCampaign(Campaign campaign) async {
-    final docRef =
-    await _db.collection('campaigns').add(campaign.toFirestore());
+    final docRef = await _db.collection('campaigns').add({
+      ...campaign.toFirestore(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     return docRef.id;
   }
 
-  /// Kampanya güncelle
+  /// Kampanya güncelle. `createdAt` bilinçli olarak yazılmaz — kaydın
+  /// oluşturulma tarihi düzenlemeyle değişmemelidir.
   Future<void> updateCampaign(String id, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _db.collection('campaigns').doc(id).update(data);
+    await _db.collection('campaigns').doc(id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Kampanya sil
@@ -202,31 +241,39 @@ class FirestoreService {
     return null;
   }
 
-  /// Kullanıcı profil bilgilerini güncelle (isim, soyisim, TC, telefon)
+  /// Kullanıcı profil bilgilerini güncelle (isim, soyisim, telefon)
   Future<void> updateUser(String uid, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _db.collection('users').doc(uid).update(data);
+    await _db.collection('users').doc(uid).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
-  /// Favorilere ekle/çıkar (toggle)
+  /// Favorilere ekle/çıkar (toggle).
+  ///
+  /// Transaction içinde yapılır: eskiden "oku → listeyi değiştir → yaz"
+  /// şeklindeydi ve iki hızlı dokunuş arasında okuma/yazma iç içe geçtiğinde
+  /// favorilerden biri sessizce kayboluyordu.
   Future<void> toggleFavorite(String uid, String vehicleId) async {
     final userRef = _db.collection('users').doc(uid);
-    final doc = await userRef.get();
-    if (!doc.exists) return;
 
-    final data = doc.data() as Map<String, dynamic>;
-    final currentFavorites =
-    List<String>.from(data['favoriteVehicleIds'] ?? []);
+    await _db.runTransaction((transaction) async {
+      final doc = await transaction.get(userRef);
+      if (!doc.exists) return;
 
-    if (currentFavorites.contains(vehicleId)) {
-      currentFavorites.remove(vehicleId);
-    } else {
-      currentFavorites.add(vehicleId);
-    }
+      final data = doc.data() as Map<String, dynamic>;
+      final favoriler = List<String>.from(data['favoriteVehicleIds'] ?? []);
 
-    await userRef.update({
-      'favoriteVehicleIds': currentFavorites,
-      'updatedAt': FieldValue.serverTimestamp(),
+      if (favoriler.contains(vehicleId)) {
+        favoriler.remove(vehicleId);
+      } else {
+        favoriler.add(vehicleId);
+      }
+
+      transaction.update(userRef, {
+        'favoriteVehicleIds': favoriler,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -286,16 +333,20 @@ class FirestoreService {
 
   /// Yeni alım yeri ekle
   Future<String> addPickupLocation(PickupLocation location) async {
-    final docRef = await _db
-        .collection('pickup_locations')
-        .add(location.toFirestore());
+    final docRef = await _db.collection('pickup_locations').add({
+      ...location.toFirestore(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     return docRef.id;
   }
 
-  /// Alım yeri güncelle
+  /// Alım yeri güncelle. `createdAt` korunur.
   Future<void> updatePickupLocation(String id, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _db.collection('pickup_locations').doc(id).update(data);
+    await _db.collection('pickup_locations').doc(id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Alım yeri sil

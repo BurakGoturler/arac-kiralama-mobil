@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/legal_texts.dart';
+import '../../core/navigation/app_page_route.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/helpers.dart';
 
@@ -123,65 +124,96 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
       return;
     }
 
-    // Email doğrulama kontrolü
-    await authService.reloadUser();
-    if (!authService.isEmailVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rezervasyon için e-posta adresinizi doğrulamanız gerekiyor.'),
-        ),
-      );
-      return;
-    }
-
-    // Kullanıcı profil bilgilerini çek
-    final userProfile = await authService.getCurrentUserProfile();
-    if (userProfile == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kullanıcı bilgileri alınamadı.')),
-        );
+    // Buradan sonrası ağ çağrısı içerir. Buton kilitlenmezse kullanıcı
+    // yavaş bağlantıda üst üste dokunur ve birden fazla onay akışı açılır.
+    setState(() => _isReserving = true);
+    try {
+      // Email doğrulama kontrolü.
+      // reloadUser ağ ister; bağlantı yoksa istisna fırlatır. Eskiden
+      // yakalanmadığı için buton hiçbir geri bildirim vermeden ölüyordu.
+      try {
+        await authService.reloadUser();
+      } catch (_) {
+        if (!mounted) return;
+        _uyariGoster(
+            'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.');
+        return;
       }
-      return;
-    }
 
-    if (!mounted) return;
+      if (!mounted) return;
+      if (!authService.isEmailVerified) {
+        _uyariGoster(
+            'Rezervasyon için e-posta adresinizi doğrulamanız gerekiyor.');
+        return;
+      }
+
+      // Kullanıcı profil bilgilerini çek
+      final AppUser? userProfile;
+      try {
+        userProfile = await authService.getCurrentUserProfile();
+      } catch (_) {
+        if (!mounted) return;
+        _uyariGoster('Kullanıcı bilgileri alınamadı. Tekrar deneyin.');
+        return;
+      }
+
+      if (!mounted) return;
+      if (userProfile == null) {
+        _uyariGoster('Kullanıcı bilgileri alınamadı.');
+        return;
+      }
 
     // ── KVKK açık rıza kontrolü ──
     // Rezervasyon bilgileri WhatsApp (yurt dışı) üzerinden aktarıldığı için
     // açık rıza olmadan gönderim yapılamaz. Rıza yoksa burada istenir.
-    if (!userProfile.acikRizaVerildi) {
-      final rizaVerildi = await _showAcikRizaDialog();
-      if (rizaVerildi != true) return;
+      if (!userProfile.acikRizaVerildi) {
+        final rizaVerildi = await _showAcikRizaDialog();
+        if (rizaVerildi != true) return;
 
-      try {
-        await FirestoreService().updateUser(userProfile.uid, {
-          'acikRizaVerildi': true,
-          'acikRizaTarihi': FieldValue.serverTimestamp(),
-          'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Onay kaydedilemedi. Tekrar deneyin.')),
-          );
+        try {
+          await FirestoreService().updateUser(userProfile.uid, {
+            'acikRizaVerildi': true,
+            'acikRizaTarihi': FieldValue.serverTimestamp(),
+            'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
+          });
+        } catch (e) {
+          if (!mounted) return;
+          _uyariGoster('Onay kaydedilemedi. Tekrar deneyin.');
+          return;
         }
-        return;
       }
+
+      if (!mounted) return;
+
+      // Bottom sheet aç — alım yeri seçimi + onay
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => _ReservationFormSheet(
+          vehicleName: v.fullName,
+          startDate: _startDate!,
+          endDate: _endDate!,
+          user: userProfile!,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isReserving = false);
     }
+  }
 
-    if (!mounted) return;
-
-    // Bottom sheet aç — alım yeri seçimi + onay
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _ReservationFormSheet(
-        vehicleName: v.fullName,
-        startDate: _startDate!,
-        endDate: _endDate!,
-        user: userProfile,
+  /// Ekranın altında tek tip uyarı gösterir.
+  void _uyariGoster(String mesaj) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mesaj,
+          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
@@ -249,10 +281,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
+              context.sayfayaGit(const LoginScreen());
             },
             child: const Text('Giriş Yap'),
           ),
@@ -368,14 +397,13 @@ class _DetailSliverAppBar extends StatelessWidget {
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) {
-                        return FullScreenImageViewer(
-                          imagePaths: vehicle.galleryPaths,
-                          initialIndex: i,
-                        );
-                      }));
-                    },
+                    onTap: () => context.sayfayaGit(
+                      FullScreenImageViewer(
+                        imagePaths: vehicle.galleryPaths,
+                        initialIndex: i,
+                      ),
+                      tamEkranDiyalog: true,
+                    ),
                     child: Hero(
                       tag: imagePath,
                       child: CachedNetworkImage(
@@ -957,21 +985,37 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
     final tcNo = _tcController.text.trim();
 
     try {
-      // 1. Firestore'a log kaydet (T.C. Kimlik No KAYDEDİLMEZ)
-      await _firestoreService.addWhatsAppLog(
-        customerName: widget.user.name,
-        customerSurname: widget.user.surname,
-        customerPhone: widget.user.phone,
-        vehicleName: widget.vehicleName,
-        startDate: AppHelpers.formatDate(widget.startDate),
-        endDate: AppHelpers.formatDate(widget.endDate),
-        phoneNumber: selectedNumber['phone']!,
-        phoneLabel: selectedNumber['label']!,
-        pickupLocation: _selectedPickupLocation!.name,
-        userId: widget.user.uid,
-      );
+      // 1. Firestore'a talep kaydı (T.C. Kimlik No KAYDEDİLMEZ).
+      //
+      // Bu kayıt yönetim panelinin takip listesidir; müşteri açısından asıl
+      // işlem WhatsApp'ın açılmasıdır. Bu yüzden kayıt YAZILAMAZSA AKIŞ
+      // DURDURULMAZ. Eskiden kayıt önce ve zorunlu olarak yazılıyordu:
+      // geçici bir bağlantı sorununda müşteri ham bir Firebase hatası görüp
+      // WhatsApp'a hiç ulaşamıyordu.
+      //
+      // Zaman aşımı, zayıf bağlantıda gönderimin kilitlenmemesi içindir.
+      bool kayitYazildi = true;
+      try {
+        await _firestoreService
+            .addWhatsAppLog(
+              customerName: widget.user.name,
+              customerSurname: widget.user.surname,
+              customerPhone: widget.user.phone,
+              vehicleName: widget.vehicleName,
+              startDate: AppHelpers.formatDate(widget.startDate),
+              endDate: AppHelpers.formatDate(widget.endDate),
+              phoneNumber: selectedNumber['phone']!,
+              phoneLabel: selectedNumber['label']!,
+              pickupLocation: _selectedPickupLocation!.name,
+              userId: widget.user.uid,
+            )
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        kayitYazildi = false;
+        debugPrint('Rezervasyon kaydı yazılamadı: $e');
+      }
 
-      // 2. WhatsApp aç
+      // 2. WhatsApp aç — kayıt yazılsın ya da yazılmasın.
       final success = await AppHelpers.openWhatsAppWithDetails(
         vehicleName: widget.vehicleName,
         startDate: widget.startDate,
@@ -984,18 +1028,40 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
         phoneNumber: selectedNumber['phone']!,
       );
 
-      if (mounted) {
+      if (!mounted) return;
+
+      if (success) {
         Navigator.pop(context); // bottom sheet'i kapat
-        if (!success) {
+        if (!kayitYazildi) {
+          // Müşteri WhatsApp'a ulaştı; yalnızca panel kaydı düşmedi.
+          // Suçlayıcı değil, bilgilendirici bir mesaj yeterli.
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('WhatsApp açılamadı.')),
+            const SnackBar(
+              content: Text('Talebiniz WhatsApp üzerinden iletiliyor.'),
+            ),
           );
         }
+      } else {
+        // Sheet AÇIK BIRAKILIR: kullanıcı başka bir numara seçip
+        // yeniden deneyebilsin.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'WhatsApp açılamadı. Cihazınızda WhatsApp yüklü değilse '
+              'yükleyip tekrar deneyin.',
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e) {
+      // Beklenmeyen durum — ham hata log'a, okunabilir mesaj ekrana.
+      debugPrint('Rezervasyon gönderimi başarısız: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+          const SnackBar(
+            content: Text('Talep gönderilemedi. Lütfen tekrar deneyin.'),
+          ),
         );
       }
     } finally {

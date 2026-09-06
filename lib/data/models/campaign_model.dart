@@ -45,6 +45,12 @@ class Campaign {
   }
 
   // ── Firestore'a yaz ──
+  ///
+  /// DİKKAT: Burada `createdAt` YOKTUR. Eskiden vardı ve bu map hem ekleme
+  /// hem güncelleme yolunda kullanıldığı için her düzenlemede kaydın
+  /// oluşturulma tarihi bugüne çekiliyordu. Zaman damgalarını artık
+  /// yalnızca FirestoreService yazar (ekleme → createdAt, güncelleme →
+  /// updatedAt), böylece iki yol birbirine karışamaz.
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
@@ -55,7 +61,6 @@ class Campaign {
       'whatsappMessage': whatsappMessage,
       'isActive': isActive,
       'order': order,
-      'createdAt': FieldValue.serverTimestamp(),
     };
   }
 }

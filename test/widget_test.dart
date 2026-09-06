@@ -50,6 +50,89 @@ void main() {
     });
   });
 
+  group('Sayı çözümleme (yönetici formları)', () {
+    // Bu testler gerçek bir hatayı kilitler: fiyat alanı eskiden
+    // double.parse ile okunuyordu. Yönetici Türkçe biçimde "1.500" yazdığında
+    // sonuç sessizce 1.5 oluyor, "1500,00" yazdığında ise FormatException
+    // fırlatıp kaydı düşürüyordu.
+
+    test('düz tam sayıyı okur', () {
+      expect(AppHelpers.sayiCoz('1500'), 1500);
+    });
+
+    test('Türkçe binlik ayracını ondalık sanmaz', () {
+      expect(AppHelpers.sayiCoz('1.500'), 1500);
+      expect(AppHelpers.sayiCoz('12.500'), 12500);
+      expect(AppHelpers.sayiCoz('1.234.500'), 1234500);
+    });
+
+    test('Türkçe ondalık virgülünü çözer', () {
+      expect(AppHelpers.sayiCoz('1500,50'), 1500.5);
+      expect(AppHelpers.sayiCoz('1.500,50'), 1500.5);
+    });
+
+    test('İngilizce biçimi de çözer', () {
+      expect(AppHelpers.sayiCoz('1,500.50'), 1500.5);
+      expect(AppHelpers.sayiCoz('1500.5'), 1500.5);
+    });
+
+    test('boşluk ve para birimi simgesini yok sayar', () {
+      expect(AppHelpers.sayiCoz(' 1.500 ₺ '), 1500);
+    });
+
+    test('çözülemeyen girdide istisna fırlatmaz, null döner', () {
+      expect(AppHelpers.sayiCoz(''), isNull);
+      expect(AppHelpers.sayiCoz('   '), isNull);
+      expect(AppHelpers.sayiCoz(null), isNull);
+      expect(AppHelpers.sayiCoz('abc'), isNull);
+    });
+
+    test('tamSayiCoz en yakın tam sayıya yuvarlar', () {
+      expect(AppHelpers.tamSayiCoz('5'), 5);
+      expect(AppHelpers.tamSayiCoz('2024'), 2024);
+      expect(AppHelpers.tamSayiCoz('4,6'), 5);
+      expect(AppHelpers.tamSayiCoz('abc'), isNull);
+    });
+  });
+
+  group('Parola politikası', () {
+    // Firebase'in kendi alt sınırı 6 karakterdir ve karmaşıklık aramaz.
+    // Bu testler, uygulamanın daha sıkı olan kendi kuralını kilitler.
+
+    test('politikaya uyan parolayı kabul eder', () {
+      expect(AppHelpers.sifreKontrol('Deneme123'), isNull);
+      expect(AppHelpers.sifreKontrol('a1b2c3d4'), isNull);
+    });
+
+    test('8 karakterden kısa parolayı reddeder', () {
+      expect(AppHelpers.sifreKontrol('abc123'), isNotNull);
+      expect(AppHelpers.sifreKontrol('Ab1'), isNotNull);
+    });
+
+    test('rakamsız parolayı reddeder', () {
+      expect(AppHelpers.sifreKontrol('abcdefgh'), isNotNull);
+    });
+
+    test('harfsiz parolayı reddeder', () {
+      expect(AppHelpers.sifreKontrol('12345678'), isNotNull);
+    });
+
+    test('boş parolayı reddeder', () {
+      expect(AppHelpers.sifreKontrol(''), isNotNull);
+      expect(AppHelpers.sifreKontrol(null), isNotNull);
+    });
+
+    test('yaygın parolaları reddeder', () {
+      expect(AppHelpers.sifreKontrol('password'), isNotNull);
+      expect(AppHelpers.sifreKontrol('Parola123'), isNotNull);
+      expect(AppHelpers.sifreKontrol('senbayrak'), isNotNull);
+    });
+
+    test('Türkçe karakterli parolayı harf sayar', () {
+      expect(AppHelpers.sifreKontrol('şğüöç123'), isNull);
+    });
+  });
+
   group('KVKK yayın öncesi kontrolü', () {
     // Bu test, şirket bilgileri doldurulmadan yayına çıkılmasını engeller.
     // Yer tutucular tamamlandığında kendiliğinden geçer.

@@ -15,6 +15,7 @@ import 'package:car_rental_mvp/ui/widgets/vehicle_card.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/navigation/app_page_route.dart';
 import '../../core/theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -137,18 +138,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onVehicleTap(Vehicle vehicle) {
-    FocusScope.of(context).requestFocus(FocusNode());
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VehicleDetailScreen(
-          vehicle: vehicle,
-          startDate: _startDate,
-          endDate: _endDate,
-        ),
-      ),
-    ).then((_) {
-      FocusScope.of(context).requestFocus(FocusNode());
+    FocusScope.of(context).unfocus();
+    context
+        .sayfayaGit(VehicleDetailScreen(
+      vehicle: vehicle,
+      startDate: _startDate,
+      endDate: _endDate,
+    ))
+        .then((_) {
+      if (mounted) FocusScope.of(context).unfocus();
     });
   }
 
@@ -177,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     ).then((_) {
-      FocusScope.of(context).requestFocus(FocusNode());
+      if (mounted) FocusScope.of(context).unfocus();
     });
   }
 
@@ -193,17 +191,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openFaqScreen() {
     FocusScope.of(context).unfocus();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const FaqScreen()),
-    );
+    context.sayfayaGit(const FaqScreen());
   }
 
   void _goToLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    ).then((_) {
+    context.sayfayaGit(const LoginScreen()).then((_) {
       // Login ekranından döndüğünde admin rolünü tekrar kontrol et
       _checkAdminRole();
       if (mounted) setState(() {});
@@ -211,35 +203,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToAdminDashboard() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-    );
+    context.sayfayaGit(const AdminDashboardScreen());
   }
 
   void _goToProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-    );
+    context.sayfayaGit(const ProfileScreen());
   }
 
   void _goToFavorites() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
-    );
+    context.sayfayaGit(const FavoritesScreen());
   }
 
   Future<void> _logout() async {
     await _authService.signOut();
     if (mounted) {
       setState(() => _isAdmin = false);
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-      );
+      context.sayfayaSifirla(const LoginScreen());
     }
   }
 

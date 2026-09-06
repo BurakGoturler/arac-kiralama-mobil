@@ -43,28 +43,60 @@ class AuthService {
     required bool sozlesmeOnayi,
     required bool acikRizaVerildi,
   }) async {
+    // Aydınlatma onayı olmadan kayıt açılamaz. Güvenlik kuralı bunu zaten
+    // reddeder; burada da kontrol edilir ki gereksiz bir Auth hesabı
+    // oluşturulup hemen silinmek zorunda kalınmasın.
+    if (!sozlesmeOnayi) {
+      throw Exception('sozlesme-onayi-gerekli');
+    }
+
     // 1. Firebase Auth'ta kullanıcı oluştur
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
 
-    // 2. Firestore'da users koleksiyonuna ekstra bilgileri yaz
-    final user = AppUser(
-      uid: credential.user!.uid,
-      email: email.trim(),
-      name: name.trim(),
-      surname: surname.trim(),
-      phone: phone.trim(),
-      role: 'customer',
-      sozlesmeOnayi: sozlesmeOnayi,
-      acikRizaVerildi: acikRizaVerildi,
-      onayMetinSurumu: SirketBilgileri.sonGuncelleme,
-    );
-    await _db.collection('users').doc(credential.user!.uid).set(user.toFirestore());
+    // 2. Firestore'da users koleksiyonuna ekstra bilgileri yaz.
+    //
+    // DİKKAT: Bu adım başarısız olursa Auth hesabı geri alınmalıdır.
+    // Aksi hâlde kullanıcı, profil dokümanı olmayan bir hesapla baş başa
+    // kalır: giriş yapabilir ama profili okunamadığı için rezervasyon
+    // gönderemez, profil ekranı boş gelir ve aynı e-postayla yeniden
+    // kayıt olamaz ("email-already-in-use"). Kullanıcının kendi başına
+    // çıkamayacağı bir kilitlenmedir; yalnızca konsoldan elle çözülür.
+    try {
+      final user = AppUser(
+        uid: credential.user!.uid,
+        email: email.trim(),
+        name: name.trim(),
+        surname: surname.trim(),
+        phone: phone.trim(),
+        role: 'customer',
+        sozlesmeOnayi: sozlesmeOnayi,
+        acikRizaVerildi: acikRizaVerildi,
+        onayMetinSurumu: SirketBilgileri.sonGuncelleme,
+      );
+      await _db
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set(user.toFirestore());
+    } catch (e) {
+      // Yarım kalan kaydı geri al, sonra hatayı yukarı ilet.
+      try {
+        await credential.user?.delete();
+      } catch (_) {
+        // Silme de başarısız olursa yapacak bir şey yok; asıl hata
+        // yine de bildirilir ve kullanıcı tekrar deneyebilir.
+      }
+      rethrow;
+    }
 
-    // 3. Doğrulama maili gönder
-    await credential.user!.sendEmailVerification();
+    // 3. Doğrulama maili gönder.
+    // Bu adımın başarısız olması kaydı geçersiz kılmaz; kullanıcı
+    // doğrulama ekranından yeniden gönderebilir.
+    try {
+      await credential.user!.sendEmailVerification();
+    } catch (_) {}
 
     return credential;
   }

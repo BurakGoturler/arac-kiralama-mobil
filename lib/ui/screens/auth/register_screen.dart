@@ -4,7 +4,9 @@ import 'package:car_rental_mvp/ui/screens/legal/legal_document_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/helpers.dart';
 import '../../widgets/primary_button.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -78,10 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
-        );
+        context.sayfayiDegistir(const EmailVerificationScreen());
       }
     } catch (e) {
       String msg = 'Kayıt başarısız. Tekrar deneyin.';
@@ -89,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (errStr.contains('email-already-in-use')) {
         msg = 'Bu e-posta zaten kullanımda.';
       } else if (errStr.contains('weak-password')) {
-        msg = 'Şifre çok zayıf (en az 6 karakter).';
+        msg = 'Şifre çok zayıf. En az 8 karakter, harf ve rakam içermeli.';
       } else if (errStr.contains('invalid-email')) {
         msg = 'Geçersiz e-posta adresi.';
       }
@@ -189,15 +188,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(
-                      labelText: 'Şifre (en az 6 karakter)',
+                      labelText: 'Şifre (en az 8 karakter, harf ve rakam)',
                       prefixIcon: Icon(Icons.lock_outlined),
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Gerekli';
-                      if (v.length < 6) return 'En az 6 karakter';
-                      return null;
-                    },
+                    validator: AppHelpers.sifreKontrol,
                   ),
                   const SizedBox(height: 12),
 

@@ -29,13 +29,15 @@ class PickupLocation {
     );
   }
 
+  /// Zaman damgaları burada yazılmaz; FirestoreService ekleme yolunda
+  /// `createdAt`, güncelleme yolunda `updatedAt` koyar. Aksi hâlde her
+  /// düzenleme kaydın oluşturulma tarihini eziyordu.
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,
       'address': address,
       'isActive': isActive,
       'order': order,
-      'createdAt': FieldValue.serverTimestamp(),
     };
   }
 }

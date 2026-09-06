@@ -5,6 +5,7 @@ import 'package:car_rental_mvp/ui/screens/vehicle_detail_screen.dart';
 import 'package:car_rental_mvp/ui/widgets/vehicle_card.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -105,15 +106,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         final vehicle = vehicles[index];
                         return VehicleCard(
                           vehicle: vehicle,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => VehicleDetailScreen(
-                                    vehicle: vehicle),
-                              ),
-                            );
-                          },
+                          onTap: () => context.sayfayaGit(
+                              VehicleDetailScreen(vehicle: vehicle)),
                         );
                       },
                     ),

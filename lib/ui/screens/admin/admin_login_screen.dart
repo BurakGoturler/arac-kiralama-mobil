@@ -3,6 +3,7 @@ import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../widgets/primary_button.dart';
 
@@ -49,10 +50,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   }
 
   void _navigateToDashboard() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-    );
+    context.sayfayiDegistir(const AdminDashboardScreen());
   }
 
   Future<void> _login() async {

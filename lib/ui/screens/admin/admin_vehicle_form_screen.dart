@@ -1,12 +1,15 @@
-import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:car_rental_mvp/data/services/storage_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/helpers.dart';
 import '../../widgets/primary_button.dart';
 
 class AdminVehicleFormScreen extends StatefulWidget {
@@ -142,6 +145,12 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
   }
 
   // ── Kaydet ──
+  ///
+  /// Akış bilinçli olarak "önce görseller, sonra tek yazma" şeklindedir.
+  /// Eskiden yeni araç için önce boş bir Firestore dokümanı açılıyor, sonra
+  /// görseller yükleniyor, sonra doküman güncelleniyordu. Yükleme ortada
+  /// başarısız olduğunda geriye görselsiz bir "hayalet araç" kalıyordu ve
+  /// her ekleme iki yazma harcıyordu.
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -154,34 +163,13 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
           .where((f) => f.isNotEmpty)
           .toList();
 
-      // Önce araç verisini kaydet/güncelle (ID'ye ihtiyacımız var)
-      String vehicleId;
+      // Kimlik: düzenlemede mevcut olan, eklemede önceden üretilen.
+      // Görseller Storage'da vehicles/{id}/ altına yazıldığı için kimlik
+      // yükleme öncesinde gerekli.
+      final vehicleId =
+          _isEditing ? widget.vehicle!.id : _firestoreService.yeniAracKimligi();
 
-      final data = <String, dynamic>{
-        'name': _nameController.text.trim(),
-        'brand': _brandController.text.trim(),
-        'category': _selectedCategory,
-        'dailyPrice': double.parse(_priceController.text.trim()),
-        'transmission': _selectedTransmission,
-        'fuelType': _selectedFuelType,
-        'seats': int.parse(_seatsController.text.trim()),
-        'engineSize': _engineSizeController.text.trim(),
-        'year': int.parse(_yearController.text.trim()),
-        'features': features,
-        'isFeatured': _isFeatured,
-        'isAvailable': _isAvailable,
-      };
-
-      if (_isEditing) {
-        vehicleId = widget.vehicle!.id;
-      } else {
-        // Yeni araç — önce boş görsel URL'leri ile oluştur
-        data['imagePath'] = '';
-        data['galleryPaths'] = <String>[];
-        vehicleId = await _firestoreService.addVehicleData(data);
-      }
-
-      // Ana görseli yükle
+      // ── Görseller ──
       String mainImageUrl = _existingImageUrl;
       if (_mainImageBytes != null) {
         mainImageUrl = await _storageService.uploadVehicleImage(
@@ -191,8 +179,7 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         );
       }
 
-      // Galeri görsellerini yükle
-      List<String> galleryUrls = List<String>.from(_existingGalleryUrls);
+      final galleryUrls = List<String>.from(_existingGalleryUrls);
       for (int i = 0; i < _galleryImageBytesList.length; i++) {
         final url = await _storageService.uploadVehicleImage(
           vehicleId: vehicleId,
@@ -202,21 +189,31 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         galleryUrls.add(url);
       }
 
-      // Firestore'u güncelle — görsel URL'leri ile
-      final updateData = <String, dynamic>{
-        ...data,
+      // ── Tek yazma ──
+      // Doğrulayıcılar geçtiği için sayı çözümlemeleri burada başarısız
+      // olamaz; yine de null'a düşerse mevcut/varsayılan değer korunur.
+      final data = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'brand': _brandController.text.trim(),
+        'category': _selectedCategory,
+        'dailyPrice': AppHelpers.sayiCoz(_priceController.text) ?? 0,
+        'transmission': _selectedTransmission,
+        'fuelType': _selectedFuelType,
+        'seats': AppHelpers.tamSayiCoz(_seatsController.text) ?? 5,
+        'engineSize': _engineSizeController.text.trim(),
+        'year': AppHelpers.tamSayiCoz(_yearController.text) ?? DateTime.now().year,
+        'features': features,
+        'isFeatured': _isFeatured,
+        'isAvailable': _isAvailable,
         'imagePath': mainImageUrl,
         'galleryPaths': galleryUrls,
       };
 
       if (_isEditing) {
-        await _firestoreService.updateVehicle(vehicleId, updateData);
+        await _firestoreService.updateVehicle(vehicleId, data);
+        await _artakalanGorselleriTemizle(mainImageUrl, galleryUrls);
       } else {
-        // Yeni eklendiyse güncelle (görsel URL'lerini ekle)
-        await _firestoreService.updateVehicle(vehicleId, {
-          'imagePath': mainImageUrl,
-          'galleryPaths': galleryUrls,
-        });
+        await _firestoreService.createVehicle(vehicleId, data);
       }
 
       if (mounted) {
@@ -227,14 +224,74 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         );
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (e, iz) {
+      // Ham hata log'a; okunabilir çeviri ekrana. Eskiden yalnızca
+      // "Hata: $e" gösteriliyordu ve yetki hatası ile ağ hatası aynı
+      // görünüyordu — hangisi olduğu anlaşılmıyordu.
+      debugPrint('Araç kaydedilemedi: $e\n$iz');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+          SnackBar(
+            content: Text(_hataMesaji(e)),
+            duration: const Duration(seconds: 6),
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Firebase hatalarını yöneticinin ne yapacağını anlayacağı hâle çevirir.
+  String _hataMesaji(Object e) {
+    if (e is FirebaseException) {
+      switch (e.code) {
+        // Hangi servisin reddettiği kritik: Storage reddediyorsa storage.rules,
+        // Firestore reddediyorsa firestore.rules ya da role alanı sorunlu.
+        case 'permission-denied':
+        case 'unauthorized':
+          final servis =
+              e.plugin.contains('storage') ? 'STORAGE' : 'FIRESTORE';
+          return '$servis yetki reddi (${e.plugin}/${e.code}). '
+              'Kurallar deploy edilmemiş olabilir veya users kaydınızda '
+              'role != "admin".';
+        case 'unauthenticated':
+          return 'Oturum düşmüş. Çıkıp tekrar giriş yapın.';
+        case 'unavailable':
+        case 'network-request-failed':
+        case 'retry-limit-exceeded':
+          return 'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.';
+        case 'object-not-found':
+          return 'Storage kovası bulunamadı. Firebase Console\'da Storage '
+              'etkinleştirilmiş mi?';
+        case 'quota-exceeded':
+          return 'Storage kotası dolmuş.';
+      }
+      // Tanımadığımız kodlarda ham bilgiyi göster — teşhis edilebilsin.
+      return 'Kaydedilemedi (${e.plugin}/${e.code}): ${e.message ?? ''}';
+    }
+    return 'Kaydedilemedi: $e';
+  }
+
+  /// Düzenleme sırasında formdan çıkarılan görselleri Storage'dan da siler.
+  ///
+  /// Bunlar eskiden yalnızca Firestore'daki URL listesinden düşüyor, dosyanın
+  /// kendisi kotayı işgal etmeye devam ediyordu. Temizlik kayıt işleminden
+  /// SONRA yapılır: silme başarısız olsa bile araç doğru kaydedilmiş olur.
+  Future<void> _artakalanGorselleriTemizle(
+    String yeniAnaGorsel,
+    List<String> yeniGaleri,
+  ) async {
+    final eski = widget.vehicle!;
+
+    final silinecek = <String>{
+      ...eski.galleryPaths.where((url) => !yeniGaleri.contains(url)),
+      if (eski.imagePath.isNotEmpty && eski.imagePath != yeniAnaGorsel)
+        eski.imagePath,
+    };
+
+    if (silinecek.isNotEmpty) {
+      await _storageService.deleteByUrls(silinecek);
     }
   }
 
@@ -267,11 +324,11 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                 : _existingImageUrl.isNotEmpty
                 ? ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                _existingImageUrl,
+              child: CachedNetworkImage(
+                imageUrl: _existingImageUrl,
                 fit: BoxFit.cover,
                 width: double.infinity,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                errorWidget: (_, __, ___) => _buildPlaceholder(),
               ),
             )
                 : _buildPlaceholder(),
@@ -290,12 +347,12 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      entry.value,
+                    child: CachedNetworkImage(
+                      imageUrl: entry.value,
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: (_, __, ___) => Container(
                         width: 80,
                         height: 80,
                         color: Colors.grey[300],
@@ -458,13 +515,28 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _priceController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          // Harf girilmesini baştan engelle; ayraç olarak
+                          // hem virgül hem nokta kabul edilir.
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]')),
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'Günlük Fiyat (₺)',
+                            hintText: '1500',
                             border: OutlineInputBorder(),
                           ),
-                          validator: (v) =>
-                          v == null || v.isEmpty ? 'Fiyat gerekli' : null,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Fiyat gerekli';
+                            }
+                            final fiyat = AppHelpers.sayiCoz(v);
+                            if (fiyat == null) return 'Geçerli bir sayı girin';
+                            if (fiyat <= 0) return 'Fiyat 0\'dan büyük olmalı';
+                            return null;
+                          },
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -472,10 +544,22 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                         child: TextFormField(
                           controller: _seatsController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'Koltuk Sayısı',
                             border: OutlineInputBorder(),
                           ),
+                          // Eskiden doğrulayıcı yoktu ve boş bırakılırsa
+                          // int.parse FormatException fırlatıp kaydı
+                          // "Hata: FormatException" mesajıyla düşürüyordu.
+                          validator: (v) {
+                            final koltuk = AppHelpers.tamSayiCoz(v);
+                            if (koltuk == null) return 'Koltuk sayısı gerekli';
+                            if (koltuk < 1 || koltuk > 20) return '1–20 arası';
+                            return null;
+                          },
                         ),
                       ),
                     ],
@@ -538,10 +622,23 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                         child: TextFormField(
                           controller: _yearController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(4),
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'Yıl',
                             border: OutlineInputBorder(),
                           ),
+                          validator: (v) {
+                            final yil = AppHelpers.tamSayiCoz(v);
+                            if (yil == null) return 'Yıl gerekli';
+                            final enSon = DateTime.now().year + 1;
+                            if (yil < 1990 || yil > enSon) {
+                              return '1990–$enSon arası';
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ],

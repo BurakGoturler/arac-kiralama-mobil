@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:car_rental_mvp/core/navigation/app_page_route.dart';
 import 'package:car_rental_mvp/data/models/campaign_model.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
@@ -31,30 +33,74 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   final _authService = AuthService();
   late TabController _tabController;
 
+  /// Yalnızca "Yeni Ekle" butonunun hangi formu açacağını belirler.
+  ///
+  /// Eskiden bunun yerine `_tabController.addListener(() => setState(() {}))`
+  /// vardı. TabController kaydırma animasyonu boyunca HER KAREDE haber verir;
+  /// yani panel saniyede 60 kez baştan çiziliyor, beş sekmenin tamamı bu
+  /// sırada yeniden kuruluyordu. Panelin "takılıyor" hissi büyük ölçüde
+  /// buradan geliyordu. Artık yalnızca sekme gerçekten değiştiğinde ve
+  /// yalnızca butonun kendisi yeniden çizilir.
+  final ValueNotifier<int> _aktifSekme = ValueNotifier<int>(0);
+
+  /// Yetki doğrulaması tamamlanana kadar panel içeriği çizilmez.
+  ///
+  /// Panel daha önce kendi kendini korumuyordu: erişim yalnızca ana
+  /// ekrandaki butonun gizlenmesine dayanıyordu. Sunucu kuralları yazma
+  /// işlemlerini zaten reddediyor, dolayısıyla veri riski yoktu; ancak
+  /// yetkisiz bir hesap panele girip her sekmede izin hatası alıyordu.
+  /// Burada rol açıkça doğrulanır ve yetkisiz kullanıcı geri gönderilir.
+  bool _yetkiDogrulandi = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_sekmeDegisti);
+    _yetkiDogrula();
+  }
 
-    _tabController.addListener(() {
-      setState(() {});
-    });
+  Future<void> _yetkiDogrula() async {
+    bool yetkili;
+    try {
+      yetkili = await _authService.isCurrentUserAdmin();
+    } catch (_) {
+      // Ağ hatasında panele sokma; güvenli taraf reddetmektir.
+      yetkili = false;
+    }
+
+    if (!mounted) return;
+
+    if (yetkili) {
+      setState(() => _yetkiDogrulandi = true);
+    } else {
+      Navigator.of(context).maybePop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bu hesabın yönetim paneline erişim yetkisi yok.'),
+        ),
+      );
+    }
+  }
+
+  void _sekmeDegisti() {
+    if (_aktifSekme.value != _tabController.index) {
+      _aktifSekme.value = _tabController.index;
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_sekmeDegisti);
     _tabController.dispose();
+    _aktifSekme.dispose();
     super.dispose();
   }
 
   Future<void> _logout() async {
     await _authService.signOut();
     if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-      );
+      context.sayfayaSifirla(const LoginScreen());
     }
   }
 
@@ -94,6 +140,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Rol doğrulanana kadar hiçbir yönetim verisi istenmez ve çizilmez.
+    if (!_yetkiDogrulandi) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Yönetim Paneli'),
@@ -138,53 +191,89 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           _StatsTab(firestoreService: _firestoreService),
         ],
       ),
-      floatingActionButton: (_tabController.index == 3 || _tabController.index == 4)
-          ? null
-          : FloatingActionButton.extended(
-        onPressed: () {
-          if (_tabController.index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AdminVehicleFormScreen()),
-            );
-          } else if (_tabController.index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AdminCampaignFormScreen()),
-            );
-          } else if (_tabController.index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AdminPickupLocationFormScreen()),
-            );
-          }
+      floatingActionButton: ValueListenableBuilder<int>(
+        valueListenable: _aktifSekme,
+        builder: (context, sekme, _) {
+          // Üyeler ve İstatistik sekmelerinde ekleme yapılmaz.
+          if (sekme == 3 || sekme == 4) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: () {
+              switch (sekme) {
+                case 0:
+                  context.sayfayaGit(const AdminVehicleFormScreen());
+                case 1:
+                  context.sayfayaGit(const AdminCampaignFormScreen());
+                case 2:
+                  context.sayfayaGit(const AdminPickupLocationFormScreen());
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Yeni Ekle'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          );
         },
-        icon: const Icon(Icons.add),
-        label: const Text('Yeni Ekle'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
       ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+//  Sekme içerikleri.
+//
+//  Hepsi aynı iki kurala uyar:
+//
+//  1. Firestore akışı `initState`'te BİR KEZ kurulur. Sekmeler eskiden
+//     `StatelessWidget`'tı ve `firestoreService.getVehiclesStream()` çağrısı
+//     `build()` içindeydi. Her build yeni bir Stream nesnesi üretiyor,
+//     StreamBuilder bunu farklı bir kaynak sanıp aboneliği kapatıp yeniden
+//     açıyor, bağlantı durumu `waiting`'e döndüğü için de ekranda bir anlık
+//     dönen çember beliriyordu — "her sekmeye girince orası yenileniyor gibi
+//     oluyor" şikâyetinin kaynağı buydu.
+//
+//  2. `AutomaticKeepAliveClientMixin` ile sekme canlı tutulur; ileri geri
+//     gidildiğinde abonelik, kaydırma konumu ve sayfa numarası korunur.
+//     Mixin'in sözleşmesi gereği `build` içinde `super.build(context)`
+//     çağrılmalıdır.
+// ─────────────────────────────────────────────────────────────────────
+
 // ── Araçlar sekmesi ──
-class _VehiclesTab extends StatelessWidget {
+class _VehiclesTab extends StatefulWidget {
   final FirestoreService firestoreService;
   final void Function(String id, String name) onDelete;
 
   const _VehiclesTab({required this.firestoreService, required this.onDelete});
 
   @override
+  State<_VehiclesTab> createState() => _VehiclesTabState();
+}
+
+class _VehiclesTabState extends State<_VehiclesTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<Vehicle>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getVehiclesStream();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return StreamBuilder<List<Vehicle>>(
-      stream: firestoreService.getVehiclesStream(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Araçlar yüklenemedi: ${snapshot.error}'));
         }
         final vehicles = snapshot.data ?? [];
         if (vehicles.isEmpty) {
@@ -206,12 +295,15 @@ class _VehiclesTab extends StatelessWidget {
                 leading: v.imagePath.isNotEmpty
                     ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    v.imagePath,
+                  // Image.network her kaydırmada görseli yeniden indiriyordu;
+                  // CachedNetworkImage zaten projede kullanılıyor.
+                  child: CachedNetworkImage(
+                    imageUrl: v.imagePath,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    memCacheWidth: 180,
+                    errorWidget: (_, __, ___) => Container(
                       width: 60,
                       height: 60,
                       color: AppColors.background,
@@ -239,20 +331,13 @@ class _VehiclesTab extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
                           color: AppColors.primary),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AdminVehicleFormScreen(vehicle: v),
-                          ),
-                        );
-                      },
+                      onPressed: () => context
+                          .sayfayaGit(AdminVehicleFormScreen(vehicle: v)),
                     ),
                     IconButton(
                       icon: Icon(Icons.delete_outline,
                           color: AppColors.error),
-                      onPressed: () => onDelete(v.id, v.fullName),
+                      onPressed: () => widget.onDelete(v.id, v.fullName),
                     ),
                   ],
                 ),
@@ -266,19 +351,42 @@ class _VehiclesTab extends StatelessWidget {
 }
 
 // ── Kampanyalar sekmesi ──
-class _CampaignsTab extends StatelessWidget {
+class _CampaignsTab extends StatefulWidget {
   final FirestoreService firestoreService;
   final void Function(String id, String name) onDelete;
 
   const _CampaignsTab({required this.firestoreService, required this.onDelete});
 
   @override
+  State<_CampaignsTab> createState() => _CampaignsTabState();
+}
+
+class _CampaignsTabState extends State<_CampaignsTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<Campaign>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getAllCampaignsStream();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return StreamBuilder<List<Campaign>>(
-      stream: firestoreService.getAllCampaignsStream(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Kampanyalar yüklenemedi: ${snapshot.error}'));
         }
         final campaigns = snapshot.data ?? [];
         if (campaigns.isEmpty) {
@@ -323,20 +431,13 @@ class _CampaignsTab extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
                           color: AppColors.primary),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AdminCampaignFormScreen(campaign: c),
-                          ),
-                        );
-                      },
+                      onPressed: () => context
+                          .sayfayaGit(AdminCampaignFormScreen(campaign: c)),
                     ),
                     IconButton(
                       icon: Icon(Icons.delete_outline,
                           color: AppColors.error),
-                      onPressed: () => onDelete(c.id, c.title),
+                      onPressed: () => widget.onDelete(c.id, c.title),
                     ),
                   ],
                 ),
@@ -350,7 +451,7 @@ class _CampaignsTab extends StatelessWidget {
 }
 
 // ── Alım Yerleri sekmesi ──
-class _PickupLocationsTab extends StatelessWidget {
+class _PickupLocationsTab extends StatefulWidget {
   final FirestoreService firestoreService;
   final void Function(String id, String name) onDelete;
 
@@ -360,12 +461,35 @@ class _PickupLocationsTab extends StatelessWidget {
   });
 
   @override
+  State<_PickupLocationsTab> createState() => _PickupLocationsTabState();
+}
+
+class _PickupLocationsTabState extends State<_PickupLocationsTab>
+    with AutomaticKeepAliveClientMixin {
+  late final Stream<List<PickupLocation>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getAllPickupLocationsStream();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return StreamBuilder<List<PickupLocation>>(
-      stream: firestoreService.getAllPickupLocationsStream(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Alım yerleri yüklenemedi: ${snapshot.error}'));
         }
         final locations = snapshot.data ?? [];
         if (locations.isEmpty) {
@@ -426,19 +550,12 @@ class _PickupLocationsTab extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
                           color: AppColors.primary),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AdminPickupLocationFormScreen(location: l),
-                          ),
-                        );
-                      },
+                      onPressed: () => context.sayfayaGit(
+                          AdminPickupLocationFormScreen(location: l)),
                     ),
                     IconButton(
                       icon: Icon(Icons.delete_outline, color: AppColors.error),
-                      onPressed: () => onDelete(l.id, l.name),
+                      onPressed: () => widget.onDelete(l.id, l.name),
                     ),
                   ],
                 ),
@@ -461,14 +578,28 @@ class _UsersTab extends StatefulWidget {
   State<_UsersTab> createState() => _UsersTabState();
 }
 
-class _UsersTabState extends State<_UsersTab> {
+class _UsersTabState extends State<_UsersTab>
+    with AutomaticKeepAliveClientMixin {
   int _currentPage = 1;
   static const int _itemsPerPage = 10;
 
+  late final Stream<List<AppUser>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getUsersStream();
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return StreamBuilder<List<AppUser>>(
-      stream: widget.firestoreService.getUsersStream(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -676,12 +807,24 @@ class _StatsTab extends StatefulWidget {
   State<_StatsTab> createState() => _StatsTabState();
 }
 
-class _StatsTabState extends State<_StatsTab> {
+class _StatsTabState extends State<_StatsTab>
+    with AutomaticKeepAliveClientMixin {
   int _currentPage = 1;
   static const int _itemsPerPage = 5;
 
   DateTime? _filterStart;
   DateTime? _filterEnd;
+
+  late final Stream<List<Map<String, dynamic>>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getWhatsAppLogsStream();
+  }
 
   Future<void> _pickDate({required bool isStart}) async {
     final now = DateTime.now();
@@ -749,13 +892,18 @@ class _StatsTabState extends State<_StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final dateFormat = DateFormat('dd.MM.yyyy', 'tr_TR');
 
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: widget.firestoreService.getWhatsAppLogsStream(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Kayıtlar yüklenemedi: ${snapshot.error}'));
         }
 
         final allLogs = snapshot.data ?? [];

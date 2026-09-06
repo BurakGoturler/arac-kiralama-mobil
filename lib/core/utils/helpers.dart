@@ -19,9 +19,91 @@ class AppHelpers {
 
   static String formatPrice(double price) => _currencyFormat.format(price);
 
+  /// Kullanıcının yazdığı sayıyı Türkçe biçimlere dayanıklı biçimde çözer.
+  ///
+  /// `double.parse` burada güvenli değildi: yönetici fiyatı "1.500" diye
+  /// yazdığında (Türkçe binlik ayracı) sonuç sessizce **1.5** oluyor,
+  /// "1500,00" yazdığında ise FormatException fırlatıp kaydı düşürüyordu.
+  /// Burada binlik ayracı atılır, ondalık virgül noktaya çevrilir.
+  /// Çözülemezse `null` döner — çağıran taraf bunu doğrulama hatası olarak
+  /// gösterir, exception'a düşmez.
+  static double? sayiCoz(String? girdi) {
+    if (girdi == null) return null;
+
+    var metin = girdi.trim().replaceAll(RegExp(r'[\s₺]'), '');
+    if (metin.isEmpty) return null;
+
+    final sonVirgul = metin.lastIndexOf(',');
+    final sonNokta = metin.lastIndexOf('.');
+
+    if (sonVirgul > sonNokta) {
+      // "1.500,50" → nokta binlik, virgül ondalık
+      metin = metin.replaceAll('.', '').replaceAll(',', '.');
+    } else if (sonNokta > sonVirgul) {
+      // "1,500.50" → virgül binlik. Tek nokta varsa ve ardından tam 3 hane
+      // geliyorsa ("1.500") bu Türkçe binlik ayracıdır, ondalık değil.
+      metin = metin.replaceAll(',', '');
+      final noktaSayisi = '.'.allMatches(metin).length;
+      final basamak = metin.length - metin.lastIndexOf('.') - 1;
+      if (noktaSayisi > 1 || basamak == 3) {
+        metin = metin.replaceAll('.', '');
+      }
+    } else {
+      metin = metin.replaceAll(',', '');
+    }
+
+    return double.tryParse(metin);
+  }
+
+  /// Tam sayı alanları (koltuk, yıl, sıra) için [sayiCoz] üzerinden çözer.
+  static int? tamSayiCoz(String? girdi) => sayiCoz(girdi)?.round();
+
   // ── Date Range Helpers ────────────────────────────────────
   static int daysBetween(DateTime start, DateTime end) {
     return end.difference(start).inDays;
+  }
+
+  // ── Parola Politikası ─────────────────────────────────────
+  /// Parolanın kurumsal politikaya uygunluğunu denetler.
+  ///
+  /// Uygun ise `null`, değilse kullanıcıya gösterilecek mesajı döndürür —
+  /// böylece doğrudan `TextFormField.validator` olarak kullanılabilir.
+  ///
+  /// Firebase'in kendi alt sınırı 6 karakterdir ve karmaşıklık aramaz;
+  /// "123456" kabul edilir. Ödeme sürecine bağlı bir hesap için bu yetersiz
+  /// olduğundan sınır burada yükseltilmiştir. Kural, kaba kuvvet ve sözlük
+  /// saldırılarına karşı anlamlı bir eşik oluşturmayı hedefler.
+  static const int sifreAsgariUzunluk = 8;
+
+  static String? sifreKontrol(String? girdi) {
+    final sifre = girdi ?? '';
+
+    if (sifre.isEmpty) return 'Gerekli';
+    if (sifre.length < sifreAsgariUzunluk) {
+      return 'En az $sifreAsgariUzunluk karakter olmalı';
+    }
+    // Çok uzun girdiler bazı sağlayıcılarda sorun çıkarır.
+    if (sifre.length > 128) return 'En fazla 128 karakter olabilir';
+
+    if (!RegExp(r'[A-Za-zÇĞİÖŞÜçğıöşü]').hasMatch(sifre)) {
+      return 'En az bir harf içermeli';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(sifre)) {
+      return 'En az bir rakam içermeli';
+    }
+
+    // Yaygın ve tahmin edilmesi kolay parolalar. Kısa bir liste bile
+    // gerçek dünyada en sık kullanılan seçimleri eler.
+    const yasakli = {
+      '12345678', '123456789', '1234567890', 'password', 'parola123',
+      'qwerty123', '11111111', '00000000', 'sifre123', 'senbayrak',
+      'admin123', '123456a', 'abcd1234', 'a1234567',
+    };
+    if (yasakli.contains(sifre.toLowerCase())) {
+      return 'Bu parola çok yaygın, farklı bir parola seçin';
+    }
+
+    return null;
   }
 
   // ── T.C. Kimlik No Doğrulama ──────────────────────────────

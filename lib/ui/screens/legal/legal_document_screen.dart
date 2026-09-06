@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/legal_texts.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// Yasal metinleri (aydınlatma, açık rıza, gizlilik, kullanım koşulları)
@@ -40,10 +41,7 @@ class LegalDocumentScreen extends StatelessWidget {
 
   /// Metni ayrı bir sayfa olarak açar.
   static Future<void> ac(BuildContext context, LegalDocumentScreen ekran) {
-    return Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => ekran),
-    );
+    return context.sayfayaGit(ekran);
   }
 
   @override

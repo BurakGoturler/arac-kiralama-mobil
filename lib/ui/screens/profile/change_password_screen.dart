@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/helpers.dart';
 import '../../widgets/primary_button.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -64,7 +65,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           errStr.contains('invalid-credential')) {
         msg = 'Mevcut şifre hatalı.';
       } else if (errStr.contains('weak-password')) {
-        msg = 'Yeni şifre çok zayıf (en az 6 karakter).';
+        msg = 'Yeni şifre çok zayıf. En az 8 karakter, harf ve rakam içermeli.';
       } else if (errStr.contains('requires-recent-login')) {
         msg = 'Güvenlik nedeniyle yeniden giriş yapmanız gerekiyor.';
       }
@@ -132,7 +133,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     controller: _newPasswordController,
                     obscureText: _obscureNew,
                     decoration: InputDecoration(
-                      labelText: 'Yeni Şifre (en az 6 karakter)',
+                      labelText: 'Yeni Şifre (en az 8 karakter, harf ve rakam)',
                       prefixIcon: const Icon(Icons.lock_reset_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(_obscureNew
@@ -143,11 +144,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       border: const OutlineInputBorder(),
                     ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Gerekli';
-                      if (v.length < 6) return 'En az 6 karakter';
-                      return null;
-                    },
+                    validator: AppHelpers.sifreKontrol,
                   ),
                   const SizedBox(height: 16),
 

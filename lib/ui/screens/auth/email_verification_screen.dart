@@ -6,6 +6,7 @@ import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../widgets/primary_button.dart';
 
@@ -68,19 +69,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _timer?.cancel();
       final isAdmin = await _authService.isCurrentUserAdmin();
       if (!mounted) return;
-      if (isAdmin) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-              (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-        );
-      }
+      context.sayfayaSifirla(
+        isAdmin ? const AdminDashboardScreen() : const HomeScreen(),
+      );
     }
   }
 
@@ -123,11 +114,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _logout() async {
     await _authService.signOut();
     if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-      );
+      context.sayfayaSifirla(const LoginScreen());
     }
   }
 

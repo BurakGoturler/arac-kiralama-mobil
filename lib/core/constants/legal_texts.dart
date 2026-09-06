@@ -12,33 +12,47 @@
 // ═══════════════════════════════════════════════════════════════════
 
 class SirketBilgileri {
-  /// Ticaret sicilindeki tam unvan (ör. "Şenbayrak Turizm Otomotiv Ltd. Şti.")
-  static const String unvan = '[ŞİRKET TİCARET UNVANI]';
+  /// Ticaret sicilindeki tam unvan
+  static const String unvan =
+      'Şenbayrak Otomotiv Petrol Ürünleri San. ve Tic. Ltd. Şti.';
 
   /// Tebligata elverişli açık adres
-  static const String adres = '[AÇIK ADRES]';
+  static const String adres =
+      'Sakarya Mah. T. Cemal Beriker Blv. No:184 Seyhan / ADANA';
+
+  /// Bağlı olunan vergi dairesi
+  static const String vergiDairesi = 'Seyhan V.D.';
+
+  /// Vergi kimlik numarası
+  static const String vkn = '803 005 8868';
 
   /// KVKK başvurularının iletileceği e-posta
+  // TODO(şirket): KVKK başvuru e-postası belirlenip yazılmalı.
   static const String kvkkEposta = '[KVKK@ORNEK.COM]';
 
   /// İletişim telefonu
+  // TODO(şirket): Tebligata esas sabit/GSM numarası yazılmalı.
   static const String telefon = '[TELEFON]';
 
   /// VERBİS kaydı varsa sicil numarası, yoksa "Kayıt yükümlülüğü
   /// bulunmamaktadır" ifadesi bırakılabilir.
+  // TODO(şirket): VERBİS kaydı sorgulanıp sicil no ya da muafiyet beyanı yazılmalı.
   static const String verbis = '[VERBİS SİCİL NO / MUAFİYET BEYANI]';
 
   /// Gizlilik politikasının yayınlandığı herkese açık adres
+  // TODO(şirket): Politika bir web adresinde yayınlanmalı — mağazalar şart koşuyor.
   static const String gizlilikUrl = '[https://ornek.com/gizlilik]';
 
   /// Metinlerin son güncellenme tarihi
-  static const String sonGuncelleme = '22.07.2026';
+  static const String sonGuncelleme = '27.07.2026';
 
   /// Yer tutucuların doldurulup doldurulmadığını anlamak için.
   /// Yayın öncesi kontrol listesinde ve testlerde kullanılır.
   static bool get eksikBilgiVar =>
       unvan.contains('[') ||
       adres.contains('[') ||
+      vergiDairesi.contains('[') ||
+      vkn.contains('[') ||
       kvkkEposta.contains('[') ||
       telefon.contains('[') ||
       verbis.contains('[') ||
@@ -57,6 +71,7 @@ Son güncelleme: ${SirketBilgileri.sonGuncelleme}
 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca kişisel verileriniz, veri sorumlusu sıfatıyla ${SirketBilgileri.unvan} ("Şirket") tarafından aşağıda açıklanan kapsamda işlenmektedir.
 
 Adres: ${SirketBilgileri.adres}
+Vergi Dairesi / VKN: ${SirketBilgileri.vergiDairesi} — ${SirketBilgileri.vkn}
 E-posta: ${SirketBilgileri.kvkkEposta}
 Telefon: ${SirketBilgileri.telefon}
 VERBİS: ${SirketBilgileri.verbis}

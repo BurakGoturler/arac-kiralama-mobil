@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -24,16 +24,36 @@ class StorageService {
     return await ref.getDownloadURL();
   }
 
-  /// Bir araç klasöründeki tüm görselleri sil
+  /// Bir araç klasöründeki tüm görselleri sil.
+  ///
+  /// Silmeler paralel yapılır; tek tek beklemek 10+ görselli bir araçta
+  /// gözle görülür bir gecikme yaratıyordu.
   Future<void> deleteVehicleImages(String vehicleId) async {
-    final ref = _storage.ref('vehicles/$vehicleId');
     try {
-      final listResult = await ref.listAll();
-      for (final item in listResult.items) {
-        await item.delete();
-      }
+      final listResult = await _storage.ref('vehicles/$vehicleId').listAll();
+      await Future.wait(listResult.items.map((item) => item.delete()));
     } catch (e) {
-      // Klasör yoksa hata vermesin
+      // Klasör yoksa ya da bir dosya zaten silinmişse akış bozulmamalı.
+      debugPrint('Araç görselleri silinemedi ($vehicleId): $e');
     }
+  }
+
+  /// İndirme URL'inden tek bir dosyayı siler.
+  ///
+  /// Yönetici, araç düzenlerken galeriden bir görseli çıkardığında eskiden
+  /// yalnızca Firestore'daki URL listesinden düşüyordu; dosyanın kendisi
+  /// Storage'da öksüz kalıyordu.
+  Future<void> deleteByUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      await _storage.refFromURL(url).delete();
+    } catch (e) {
+      debugPrint('Görsel silinemedi ($url): $e');
+    }
+  }
+
+  /// Verilen URL listesindeki dosyaları paralel siler.
+  Future<void> deleteByUrls(Iterable<String> urls) async {
+    await Future.wait(urls.map(deleteByUrl));
   }
 }

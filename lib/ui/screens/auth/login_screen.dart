@@ -6,6 +6,7 @@ import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../widgets/primary_button.dart';
 
@@ -55,10 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.reloadUser();
       if (!_authService.isEmailVerified) {
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
-          );
+          context.sayfayiDegistir(const EmailVerificationScreen());
         }
         return;
       }
@@ -67,19 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final isAdmin = await _authService.isCurrentUserAdmin();
       if (!mounted) return;
 
-      if (isAdmin) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-              (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-        );
-      }
+      context.sayfayaSifirla(
+        isAdmin ? const AdminDashboardScreen() : const HomeScreen(),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = 'Giriş başarısız. E-posta veya şifre hatalı.';
@@ -111,18 +99,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goToRegister() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-    );
+    context.sayfayaGit(const RegisterScreen());
   }
 
   void _continueAsGuest() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
-    );
+    context.sayfayaSifirla(const HomeScreen());
   }
 
   @override
