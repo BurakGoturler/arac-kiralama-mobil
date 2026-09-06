@@ -33,12 +33,12 @@ class VehicleCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppConstants.cardRadius),
           boxShadow: [
             BoxShadow(
-              color: AppColors.cardShadow.withOpacity(0.06),
+              color: AppColors.cardShadow.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: AppColors.cardShadow.withOpacity(0.03),
+              color: AppColors.cardShadow.withValues(alpha: 0.03),
               blurRadius: 6,
               offset: const Offset(0, 1),
             ),
@@ -110,7 +110,7 @@ class _CardImage extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.12),
+                      Colors.black.withValues(alpha: 0.12),
                     ],
                   ),
                 ),
@@ -194,11 +194,11 @@ class _FavoriteButton extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -226,7 +226,7 @@ class _CategoryBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(AppConstants.radiusS),
       ),
       child: Text(

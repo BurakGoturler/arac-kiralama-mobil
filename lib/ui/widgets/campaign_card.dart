@@ -27,7 +27,7 @@ class CampaignCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.discount_rounded, color: Colors.white.withOpacity(0.5), size: 28),
+            Icon(Icons.discount_rounded, color: Colors.white.withValues(alpha: 0.5), size: 28),
             const SizedBox(height: 8),
             Text(
               campaign.title,
@@ -39,7 +39,7 @@ class CampaignCard extends StatelessWidget {
             Expanded(
               child: Text(
                 campaign.description,
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withOpacity(0.8)),
+                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white.withValues(alpha: 0.8)),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

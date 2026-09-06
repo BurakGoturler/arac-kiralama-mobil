@@ -31,7 +31,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    debugPrint('SPLASH: initState başladı');
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     _logoController = AnimationController(
@@ -69,21 +68,18 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _logoController.addStatusListener((status) {
-      debugPrint('LOGO ANIMATION: $status');
       if (status == AnimationStatus.completed) {
         _textController.forward();
       }
     });
 
     _textController.addStatusListener((status) {
-      debugPrint('TEXT ANIMATION: $status');
       if (status == AnimationStatus.completed) {
         _cikisaHazirlan();
       }
     });
 
     _exitController.addStatusListener((status) {
-      debugPrint('EXIT ANIMATION: $status');
       if (status == AnimationStatus.completed && mounted && _hedef != null) {
         SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
         _git(_hedef!);
@@ -283,7 +279,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Text(
                 'Hızlı • Üstün Kalite • Sorunsuz',
                 style: AppTextStyles.caption.copyWith(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   letterSpacing: 1.5,
                   fontSize: 11,
                 ),

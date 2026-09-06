@@ -84,7 +84,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
-                    color: AppColors.primary.withOpacity(0.05),
+                    color: AppColors.primary.withValues(alpha: 0.05),
                     child: Row(
                       children: [
                         const Icon(Icons.favorite,
@@ -129,7 +129,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.favorite_border,
-                size: 80, color: AppColors.textMuted.withOpacity(0.5)),
+                size: 80, color: AppColors.textMuted.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text('Henüz favori aracınız yok',
                 style: AppTextStyles.headingMedium,

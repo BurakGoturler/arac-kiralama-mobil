@@ -194,8 +194,20 @@ class AuthService {
     // 2. Profil dokümanı
     await _db.collection('users').doc(uid).delete();
 
-    // 3. Firebase Auth kaydı
-    await user.delete();
+    // 3. Firebase Auth kaydı.
+    //
+    // Bu adım başarısız olursa kullanıcı, profili silinmiş ama Auth kaydı
+    // duran bir hesapla kalır: giriş yapabilir, profili okunamaz, uygulamayı
+    // kullanamaz ve aynı e-postayla yeniden kayıt olamaz. Kayıt akışında
+    // düzelttiğimizle aynı çıkmaz. Burada geri alma mümkün değil (kişisel
+    // veri zaten silindi ve geri getirilmemeli), bu yüzden çağırana durumu
+    // ayırt edilebilir biçimde bildiriyoruz ki ekran "tekrar deneyin"
+    // diyebilsin. Yeniden denendiğinde 1. ve 2. adımlar zaten boş geçer.
+    try {
+      await user.delete();
+    } catch (e) {
+      throw Exception('auth-kaydi-silinemedi: $e');
+    }
   }
 
   /// Çıkış yap

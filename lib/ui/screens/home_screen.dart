@@ -468,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.pink.withOpacity(0.2),
+                                  color: Colors.pink.withValues(alpha: 0.2),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -479,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.25),
+                                    color: Colors.white.withValues(alpha: 0.25),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.favorite,
@@ -506,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             : '$count araç',
                                         style: TextStyle(
                                           color:
-                                          Colors.white.withOpacity(0.9),
+                                          Colors.white.withValues(alpha: 0.9),
                                           fontSize: 13,
                                         ),
                                       ),

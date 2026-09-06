@@ -190,6 +190,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       if (hata.contains('wrong-password') ||
           hata.contains('invalid-credential')) {
         mesaj = 'Şifre hatalı.';
+      } else if (hata.contains('auth-kaydi-silinemedi')) {
+        mesaj = 'Verileriniz silindi ancak hesap kaydı kapatılamadı. '
+            'Lütfen tekrar deneyin.';
       } else if (hata.contains('network')) {
         mesaj = 'Bağlantı hatası. İnternetinizi kontrol edin.';
       }

@@ -60,8 +60,10 @@ class _AdminCampaignFormScreenState extends State<AdminCampaignFormScreen> {
     // Mevcut gradient'i bul
     if (c != null && c.gradientColors.length >= 2) {
       for (int i = 0; i < _gradientOptions.length; i++) {
-        if (_gradientOptions[i][0].value == c.gradientColors[0].value &&
-            _gradientOptions[i][1].value == c.gradientColors[1].value) {
+        if (_gradientOptions[i][0].toARGB32() ==
+                c.gradientColors[0].toARGB32() &&
+            _gradientOptions[i][1].toARGB32() ==
+                c.gradientColors[1].toARGB32()) {
           _selectedGradientIndex = i;
           break;
         }
@@ -244,7 +246,7 @@ class _AdminCampaignFormScreenState extends State<AdminCampaignFormScreen> {
                     title: const Text('Aktif'),
                     subtitle: const Text('Uygulamada görünsün mü?'),
                     value: _isActive,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
                   const SizedBox(height: 24),

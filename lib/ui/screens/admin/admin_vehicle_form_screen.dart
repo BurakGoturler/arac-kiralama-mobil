@@ -495,7 +495,7 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
 
                   // ── Kategori ──
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(
                       labelText: 'Kategori',
                       border: OutlineInputBorder(),
@@ -571,7 +571,7 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedTransmission,
+                          initialValue: _selectedTransmission,
                           decoration: const InputDecoration(
                             labelText: 'Vites',
                             border: OutlineInputBorder(),
@@ -587,7 +587,7 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedFuelType,
+                          initialValue: _selectedFuelType,
                           decoration: const InputDecoration(
                             labelText: 'Yakıt Tipi',
                             border: OutlineInputBorder(),
@@ -663,14 +663,14 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                     title: const Text('Öne Çıkan Araç'),
                     subtitle: const Text('Ana sayfada vurgulanır'),
                     value: _isFeatured,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (v) => setState(() => _isFeatured = v),
                   ),
                   SwitchListTile(
                     title: const Text('Müsait'),
                     subtitle: const Text('Kiralamaya açık mı?'),
                     value: _isAvailable,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (v) => setState(() => _isAvailable = v),
                   ),
                   const SizedBox(height: 24),

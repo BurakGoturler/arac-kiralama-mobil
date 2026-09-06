@@ -61,7 +61,16 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
 
   Future<void> _pickDate({required bool isStart}) async {
     final now = DateTime.now();
-    final firstDate = isStart ? now : (_startDate ?? now);
+
+    // Teslim tarihinin alt sınırı, alım tarihinin ERTESİ günüdür.
+    //
+    // Eskiden alım günüyle aynı gün seçilebiliyordu; süre 0 gün çıkıyor ve
+    // rezervasyon butonu hiçbir açıklama yapmadan kilitli kalıyordu.
+    // Kullanıcı nedenini anlayamıyordu. Artık seçilemeyen gün takvimde
+    // baştan pasif görünüyor.
+    final firstDate = isStart
+        ? now
+        : (_startDate?.add(const Duration(days: 1)) ?? now);
     final initialDate = isStart
         ? (_startDate ?? now)
         : (_endDate ?? firstDate.add(const Duration(days: 1)));
@@ -364,11 +373,11 @@ class _DetailSliverAppBar extends StatelessWidget {
           onTap: () => Navigator.pop(context),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -435,7 +444,7 @@ class _DetailSliverAppBar extends StatelessWidget {
                       stops: const [0.5, 1.0],
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.4),
+                        Colors.black.withValues(alpha: 0.4),
                       ],
                     ),
                   ),
@@ -458,7 +467,7 @@ class _DetailSliverAppBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: activeImageIndex == i
                             ? Colors.white
-                            : Colors.white.withOpacity(0.5),
+                            : Colors.white.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     );
@@ -554,7 +563,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                     width: _currentIndex == i ? 12 : 8,
                     height: _currentIndex == i ? 12 : 8,
                     decoration: BoxDecoration(
-                      color: _currentIndex == i ? Colors.white : Colors.white.withOpacity(0.5),
+                      color: _currentIndex == i ? Colors.white : Colors.white.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -583,7 +592,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.radiusL),
         boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow.withOpacity(0.05),
+            color: AppColors.cardShadow.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -875,7 +884,7 @@ class _ReservationBar extends StatelessWidget {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -1092,7 +1101,7 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
               child: Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textMuted.withOpacity(0.3),
+                  color: AppColors.textMuted.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1223,14 +1232,26 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                   });
                 }
 
-                return Column(
+                // Seçim durumu artık tek bir RadioGroup tarafından
+                // yönetiliyor; RadioListTile'ın kendi groupValue/onChanged
+                // parametreleri Flutter 3.32'de kullanımdan kaldırıldı.
+                return RadioGroup<String>(
+                  groupValue: _selectedPickupLocation?.id,
+                  onChanged: (secilenId) {
+                    if (secilenId == null) return;
+                    setState(() {
+                      _selectedPickupLocation =
+                          locations.firstWhere((l) => l.id == secilenId);
+                    });
+                  },
+                  child: Column(
                   children: locations.map((loc) {
                     final isSelected = _selectedPickupLocation?.id == loc.id;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary.withOpacity(0.08)
+                            ? AppColors.primary.withValues(alpha: 0.08)
                             : AppColors.background,
                         borderRadius: BorderRadius.circular(AppConstants.radiusM),
                         border: Border.all(
@@ -1242,10 +1263,6 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                       ),
                       child: RadioListTile<String>(
                         value: loc.id,
-                        groupValue: _selectedPickupLocation?.id,
-                        onChanged: (v) {
-                          setState(() => _selectedPickupLocation = loc);
-                        },
                         title: Text(loc.name,
                             style: AppTextStyles.bodyMedium.copyWith(
                                 fontWeight: FontWeight.w600)),
@@ -1259,6 +1276,7 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                       ),
                     );
                   }).toList(),
+                  ),
                 );
               },
             ),
@@ -1274,18 +1292,28 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                 ],
               ),
               const SizedBox(height: 8),
-              ...List.generate(AppConstants.whatsappNumbers.length, (index) {
-                final number = AppConstants.whatsappNumbers[index];
-                return RadioListTile<int>(
-                  value: index,
-                  groupValue: _selectedNumberIndex,
-                  onChanged: (v) => setState(() => _selectedNumberIndex = v!),
-                  title: Text(number['label']!, style: AppTextStyles.bodyMedium),
-                  activeColor: AppColors.primary,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                );
-              }),
+              RadioGroup<int>(
+                groupValue: _selectedNumberIndex,
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _selectedNumberIndex = v);
+                },
+                child: Column(
+                  children: List.generate(
+                    AppConstants.whatsappNumbers.length,
+                    (index) {
+                      final number = AppConstants.whatsappNumbers[index];
+                      return RadioListTile<int>(
+                        value: index,
+                        title: Text(number['label']!,
+                            style: AppTextStyles.bodyMedium),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    },
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
             ],
 
@@ -1391,11 +1419,11 @@ class _DetailFavoriteButton extends StatelessWidget {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

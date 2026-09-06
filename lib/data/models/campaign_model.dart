@@ -56,7 +56,7 @@ class Campaign {
       'title': title,
       'description': description,
       'code': code,
-      'gradientColors': gradientColors.map((c) => c.value).toList(),
+      'gradientColors': gradientColors.map((c) => c.toARGB32()).toList(),
       'buttonText': buttonText,
       'whatsappMessage': whatsappMessage,
       'isActive': isActive,

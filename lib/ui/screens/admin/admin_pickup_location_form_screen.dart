@@ -153,7 +153,7 @@ class _AdminPickupLocationFormScreenState
                     title: const Text('Aktif'),
                     subtitle: const Text('Müşteriler tarafından seçilebilir'),
                     value: _isActive,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
                   const SizedBox(height: 24),

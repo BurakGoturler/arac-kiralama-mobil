@@ -120,11 +120,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _isSaving = true);
     try {
+      // Rızanın VERİLDİĞİ tarih korunur; geri alma ayrı bir alana yazılır.
+      //
+      // Eskiden geri alındığında `acikRizaTarihi` tamamen siliniyordu, yani
+      // rızanın ne zaman verildiği kaydı yok oluyordu. KVKK'da ispat yükü
+      // veri sorumlusundadır: hem rızanın alındığı an hem de geri alındığı
+      // an gösterilebilmelidir. Geri alma, o tarihe kadar yapılmış işlemleri
+      // geçersiz kılmaz — bu yüzden geçmişin silinmesi hatalıydı.
       await _firestoreService.updateUser(_user!.uid, {
         'acikRizaVerildi': yeniDeger,
-        'acikRizaTarihi':
-            yeniDeger ? FieldValue.serverTimestamp() : FieldValue.delete(),
-        if (yeniDeger) 'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
+        if (yeniDeger) ...{
+          'acikRizaTarihi': FieldValue.serverTimestamp(),
+          'acikRizaGeriAlmaTarihi': FieldValue.delete(),
+          'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
+        } else
+          'acikRizaGeriAlmaTarihi': FieldValue.serverTimestamp(),
       });
       await _loadProfile();
       if (!mounted) return;
@@ -237,6 +247,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (hata.contains('wrong-password') ||
           hata.contains('invalid-credential')) {
         mesaj = 'Şifre hatalı.';
+      } else if (hata.contains('auth-kaydi-silinemedi')) {
+        mesaj = 'Verileriniz silindi ancak hesap kaydı kapatılamadı. '
+            'Lütfen tekrar deneyin.';
       } else if (hata.contains('network')) {
         mesaj = 'Bağlantı hatası. İnternetinizi kontrol edin.';
       }
@@ -279,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircleAvatar(
                       radius: 48,
                       backgroundColor:
-                      AppColors.primary.withOpacity(0.1),
+                      AppColors.primary.withValues(alpha: 0.1),
                       child: Text(
                         _user!.name.isNotEmpty
                             ? _user!.name[0].toUpperCase()

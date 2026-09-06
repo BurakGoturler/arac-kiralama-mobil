@@ -144,7 +144,7 @@ class AppTheme {
         error: AppColors.error,
       ),
 
-      splashColor: AppColors.primary.withOpacity(0.08),
+      splashColor: AppColors.primary.withValues(alpha: 0.08),
       highlightColor: Colors.transparent,
       visualDensity: VisualDensity.adaptivePlatformDensity,
 

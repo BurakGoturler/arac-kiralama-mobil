@@ -513,7 +513,7 @@ class _PickupLocationsTabState extends State<_PickupLocationsTab>
                   height: 48,
                   decoration: BoxDecoration(
                     color: l.isActive
-                        ? AppColors.primary.withOpacity(0.1)
+                        ? AppColors.primary.withValues(alpha: 0.1)
                         : AppColors.background,
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -631,7 +631,7 @@ class _UsersTabState extends State<_UsersTab>
             // Özet bilgi
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppColors.primary.withOpacity(0.05),
+              color: AppColors.primary.withValues(alpha: 0.05),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -667,7 +667,7 @@ class _UsersTabState extends State<_UsersTab>
                       leading: CircleAvatar(
                         backgroundColor: u.isAdmin
                             ? AppColors.primary
-                            : AppColors.primary.withOpacity(0.1),
+                            : AppColors.primary.withValues(alpha: 0.1),
                         child: Icon(
                           u.isAdmin
                               ? Icons.admin_panel_settings
@@ -738,7 +738,7 @@ class _UsersTabState extends State<_UsersTab>
                   color: AppColors.surface,
                   border: Border(
                     top: BorderSide(
-                      color: AppColors.textMuted.withOpacity(0.2),
+                      color: AppColors.textMuted.withValues(alpha: 0.2),
                     ),
                   ),
                 ),
@@ -973,7 +973,7 @@ class _StatsTabState extends State<_StatsTab>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.textMuted.withOpacity(0.3)),
+                                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.3)),
                                 borderRadius: BorderRadius.circular(AppConstants.radiusS),
                               ),
                               child: Row(
@@ -1006,7 +1006,7 @@ class _StatsTabState extends State<_StatsTab>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.textMuted.withOpacity(0.3)),
+                                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.3)),
                                 borderRadius: BorderRadius.circular(AppConstants.radiusS),
                               ),
                               child: Row(
@@ -1068,7 +1068,7 @@ class _StatsTabState extends State<_StatsTab>
                     else
                       Table(
                         border: TableBorder.all(
-                          color: AppColors.textMuted.withOpacity(0.2),
+                          color: AppColors.textMuted.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         columnWidths: const {
@@ -1078,7 +1078,7 @@ class _StatsTabState extends State<_StatsTab>
                         children: [
                           TableRow(
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(8)),
                             ),
@@ -1116,7 +1116,7 @@ class _StatsTabState extends State<_StatsTab>
                           )),
                           TableRow(
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.05),
+                              color: AppColors.primary.withValues(alpha: 0.05),
                             ),
                             children: [
                               Padding(
@@ -1177,7 +1177,7 @@ class _StatsTabState extends State<_StatsTab>
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       child: const Icon(Icons.person, color: AppColors.primary),
                     ),
                     title: Text(
