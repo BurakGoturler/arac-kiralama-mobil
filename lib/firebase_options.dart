@@ -67,13 +67,20 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.senbayrak.arackiralama',
   );
 
+  /// macOS, bu uygulamanın yayın hedefi DEĞİLDİR.
+  ///
+  /// Bu tanım eskiden Firebase'deki eski `com.example.carRentalMvp` kaydını
+  /// (appId ...7ebda106...) işaret ediyordu. Paket adı değişikliğinden kalma
+  /// o kayıt konsoldan silindiğinde buradaki tanım boşa düşerdi. Aynı
+  /// projedeki güncel iOS kaydına bağlandı; böylece mükerrer kayıtlar
+  /// güvenle silinebiliyor ve geride çalışmayan bir yapılandırma kalmıyor.
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCeQmAbHjg3vmtsVt9q5xhPwKWTtRX4t1w',
-    appId: '1:717851854165:ios:7ebda106e50fc3a3e45bdc',
+    appId: '1:717851854165:ios:3e73efef32e41e31e45bdc',
     messagingSenderId: '717851854165',
     projectId: 'senbayrak-arac-kiralama',
     storageBucket: 'senbayrak-arac-kiralama.firebasestorage.app',
-    iosBundleId: 'com.example.carRentalMvp',
+    iosBundleId: 'com.senbayrak.arackiralama',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
