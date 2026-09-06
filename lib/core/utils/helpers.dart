@@ -141,19 +141,6 @@ class AppHelpers {
   }
 
   // ── WhatsApp Launcher ─────────────────────────────────────
-  static Future<bool> openWhatsApp({
-    required String vehicleName,
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    final message = AppConstants.whatsappMessage(
-      vehicleName: vehicleName,
-      startDate: formatDate(startDate),
-      endDate: formatDate(endDate),
-    );
-    return await openWhatsAppWithMessage(message);
-  }
-
   static Future<bool> openWhatsAppWithMessage(String message) async {
     final encoded = Uri.encodeComponent(message);
     final uri = Uri.parse(

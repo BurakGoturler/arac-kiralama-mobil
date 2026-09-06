@@ -1,7 +1,17 @@
 class AppConstants {
   // ── WhatsApp ──────────────────────────────────────────────
-  /// Replace with your actual WhatsApp business number (with country code, no '+').
-  static const String whatsappPhone = '905357605676';
+  //
+  // TEK KAYNAK. Uygulamadan çıkan bütün WhatsApp bağlantıları bu numarayı
+  // kullanır.
+  //
+  // Denetimde iki AYRI numara tanımlı olduğu görüldü: kampanya kartlarındaki
+  // "Bize Ulaşın" 905357605676'ya, rezervasyon talebi ise 905303739446'ya
+  // gidiyordu. Müşteri, hangi düğmeye bastığına göre farklı hatta düşüyordu.
+  // Numaralar burada birleştirildi.
+  //
+  // TODO(yayın): Yayına çıkmadan önce işletmenin kullanacağı TEK numara
+  // teyit edilip buraya yazılmalı. Ülke kodu ile, '+' ve boşluk olmadan.
+  static const String whatsappPhone = '905303739446';
 
   // ── Dimensions ────────────────────────────────────────────
   static const double paddingXS = 4.0;
@@ -26,21 +36,12 @@ class AppConstants {
   static const String filterTitle = 'Araçları Filtrele';
   static const String allCategory = 'Hepsi';
 
-  // WhatsApp message template
-  static String whatsappMessage({
-    required String vehicleName,
-    required String startDate,
-    required String endDate,
-  }) =>
-      'Merhaba, mobil uygulamanız üzerinden $vehicleName için $startDate - $endDate tarihleri arasında rezervasyon yapmak istiyorum.';
-
-
-
-  // ── WhatsApp Çoklu Numara ─────────────────────────────────
+  // ── WhatsApp Hat Listesi ──────────────────────────────────
+  // Birden fazla hat tanımlanırsa rezervasyon ekranında kullanıcıya seçim
+  // sunulur; tek hat varsa seçim gösterilmez. Numaralar [whatsappPhone]
+  // üzerinden gelir ki iki ayrı yerde farklı numara tutulamasın.
   static const List<Map<String, String>> whatsappNumbers = [
-    {'label': 'Hat 1 - Ofis', 'phone': '905303739446'},
-    // {'label': 'Hat 2 - Mehmet Bey', 'phone': '905303739446'},
-    // {'label': 'Hat 3 - Ahmet Bey', 'phone': '905303739446'},
+    {'label': 'Hat 1 - Ofis', 'phone': whatsappPhone},
   ];
 
 // WhatsApp mesaj şablonu (müşteri bilgili + alım yeri versiyon)

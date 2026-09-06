@@ -26,13 +26,17 @@ class SirketBilgileri {
   /// Vergi kimlik numarası
   static const String vkn = '803 005 8868';
 
-  /// KVKK başvurularının iletileceği e-posta
-  // TODO(şirket): KVKK başvuru e-postası belirlenip yazılmalı.
-  static const String kvkkEposta = '[KVKK@ORNEK.COM]';
+  /// KVKK başvurularının iletileceği e-posta.
+  ///
+  /// Şirketin web sitesinde yayımlanan genel iletişim adresi kullanılıyor.
+  /// DİKKAT: Buraya bir YÖNETİCİ HESABININ e-postası yazılmamalıdır. Bu adres
+  /// yasal metinlerde ve web sitesinde herkese açık yayımlanır; yönetim
+  /// paneline giriş yapan bir hesabın adresi olursa o hesap hedefli saldırı
+  /// için doğrudan tarif edilmiş olur.
+  static const String kvkkEposta = 'info@senbayrak.com.tr';
 
-  /// İletişim telefonu
-  // TODO(şirket): Tebligata esas sabit/GSM numarası yazılmalı.
-  static const String telefon = '[TELEFON]';
+  /// Tebligata esas iletişim telefonu (Merkez Şube).
+  static const String telefon = '0 (322) 435 56 36';
 
   /// VERBİS kaydı varsa sicil numarası, yoksa "Kayıt yükümlülüğü
   /// bulunmamaktadır" ifadesi bırakılabilir.
@@ -42,8 +46,7 @@ class SirketBilgileri {
   /// KEP (Kayıtlı Elektronik Posta) adresi.
   /// KVKK başvuruları yazılı olarak veya KEP üzerinden yapılabilir;
   /// avukat metinlerinde başvuru kanalı olarak sayıldığı için burada da yer alır.
-  // TODO(şirket): KEP adresi varsa yazılmalı, yoksa 'Bulunmamaktadır' bırakılmalı.
-  static const String kep = '[KEP ADRESİ]';
+  static const String kep = 'Bulunmamaktadır';
 
   /// Uyuşmazlıklarda yetkili mahkeme ve icra daireleri.
   ///
@@ -51,8 +54,7 @@ class SirketBilgileri {
   /// yer tutucuydu ve [eksikBilgiVar] denetiminin DIŞINDA kalıyordu; yani
   /// yayın öncesi testi geçtiği hâlde kullanıcı metinde köşeli parantezli
   /// bir ifade görebiliyordu. Alan hâline getirilip denetime dâhil edildi.
-  // TODO(şirket): Şirket merkezine göre belirlenmeli (ör. 'Adana').
-  static const String yetkiliMahkeme = '[YETKİLİ MAHKEME YERİ]';
+  static const String yetkiliMahkeme = 'Adana';
 
   /// Gizlilik politikasının yayınlandığı herkese açık adres.
   /// Google Play ve App Store bunu şart koşar; uygulama içi metin tek
@@ -61,7 +63,7 @@ class SirketBilgileri {
       'https://senbayrak.com.tr/gizlilik-politikasi.php';
 
   /// Metinlerin son güncellenme tarihi
-  static const String sonGuncelleme = '27.07.2026';
+  static const String sonGuncelleme = '06.09.2026';
 
   /// Yer tutucuların doldurulup doldurulmadığını anlamak için.
   /// Yayın öncesi kontrol listesinde ve testlerde kullanılır.
@@ -129,7 +131,7 @@ hukuki sebeplerine dayanılarak işlenmektedir.
 
 Rezervasyon talebiniz, tarafınızca WhatsApp uygulaması üzerinden Şirket'e iletilir. Bu iletim sırasında ad, soyad, telefon numarası, T.C. Kimlik Numarası ve kiralama bilgileriniz WhatsApp (Meta Platforms) altyapısı üzerinden geçer. WhatsApp sunucuları yurt dışında bulunduğundan bu işlem KVKK m.9 kapsamında YURT DIŞINA VERİ AKTARIMI niteliğindedir ve yalnızca açık rızanız ile gerçekleştirilir.
 
-Verileriniz ayrıca, uygulamanın teknik altyapısını sağlayan Google Firebase hizmetlerinde barındırılmaktadır.
+Verileriniz ayrıca, uygulamanın teknik altyapısını sağlayan Google Firebase hizmetlerinde barındırılmaktadır. Veritabanı sunucuları Avrupa Birliği sınırları içinde (Belçika — europe-west1 bölgesi) konumlandırılmıştır.
 
 Rezervasyon talebiniz teyit edilip kiralama süreci başladığında, kiralama sözleşmesinin ifası kapsamında verileriniz aşağıdaki taraflara KVKK m.8 ve m.9'da belirtilen şartlara uygun olarak aktarılabilir:
 
@@ -242,7 +244,7 @@ T.C. Kimlik Numaranız veritabanımızda saklanmaz. Yalnızca rezervasyon talebi
 
 VERİLERİN SAKLANDIĞI YER
 
-Verileriniz Google Firebase (Firestore, Authentication, Storage) altyapısında barındırılmaktadır.
+Verileriniz Google Firebase (Firestore, Authentication, Storage) altyapısında, Avrupa Birliği sınırları içindeki sunucularda (Belçika — europe-west1) barındırılmaktadır.
 
 ÜÇÜNCÜ TARAFLAR
 
