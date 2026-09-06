@@ -118,6 +118,86 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
+  bool _isDeleting = false;
+
+  /// Doğrulama ekranından hesap silme (KVKK m.7).
+  ///
+  /// Silme, Firebase tarafından yakın zamanlı kimlik doğrulaması istendiği
+  /// için parola sorularak yapılır; akış profil ekranındakiyle aynıdır.
+  Future<void> _hesabiSil() async {
+    final parolaKontrolcusu = TextEditingController();
+
+    final onaylandi = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hesabınızı silmek istiyor musunuz?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bu işlem geri alınamaz. Hesabınız ve ad, soyad, telefon, '
+              'e-posta bilgileriniz kalıcı olarak silinecektir.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: parolaKontrolcusu,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Şifreniz',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Sil', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    final parola = parolaKontrolcusu.text;
+    parolaKontrolcusu.dispose();
+
+    if (onaylandi != true || parola.isEmpty) return;
+    if (!mounted) return;
+
+    setState(() => _isDeleting = true);
+
+    // Yoklama zamanlayıcıları silme sırasında istek atmaya devam etmesin.
+    _timer?.cancel();
+    _cooldownTimer?.cancel();
+
+    try {
+      await _authService.deleteAccount(currentPassword: parola);
+      if (!mounted) return;
+      context.sayfayaSifirla(const LoginScreen());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hesabınız ve verileriniz silindi.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final hata = e.toString();
+      String mesaj = 'Hesap silinemedi. Lütfen tekrar deneyin.';
+      if (hata.contains('wrong-password') ||
+          hata.contains('invalid-credential')) {
+        mesaj = 'Şifre hatalı.';
+      } else if (hata.contains('network')) {
+        mesaj = 'Bağlantı hatası. İnternetinizi kontrol edin.';
+      }
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mesaj)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final email = _authService.currentUser?.email ?? '';
@@ -167,6 +247,28 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 TextButton(
                   onPressed: _logout,
                   child: const Text('Çıkış Yap'),
+                ),
+
+                // ── Hesabı sil ──
+                //
+                // Bu ekran bir çıkmaz olabilir: giriş akışı, e-postası
+                // doğrulanmamış kullanıcıyı her seferinde buraya gönderir.
+                // Silme seçeneği yalnızca profil ekranındayken, oraya
+                // ulaşamayan kullanıcı hesabını silemiyor, verisini
+                // göremiyor ve KVKK m.7 haklarını uygulama içinden hiç
+                // kullanamıyordu — üstelik adı, soyadı, telefonu ve
+                // e-postası veritabanında duruyordu. App Store Guideline
+                // 5.1.1(v) de silme yolunun erişilebilir olmasını şart
+                // koşar. Bu yüzden silme buraya da konuldu.
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: _isDeleting ? null : _hesabiSil,
+                  child: Text(
+                    _isDeleting ? 'Siliniyor...' : 'Hesabımı Sil',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -39,9 +39,26 @@ class SirketBilgileri {
   // TODO(şirket): VERBİS kaydı sorgulanıp sicil no ya da muafiyet beyanı yazılmalı.
   static const String verbis = '[VERBİS SİCİL NO / MUAFİYET BEYANI]';
 
-  /// Gizlilik politikasının yayınlandığı herkese açık adres
-  // TODO(şirket): Politika bir web adresinde yayınlanmalı — mağazalar şart koşuyor.
-  static const String gizlilikUrl = '[https://ornek.com/gizlilik]';
+  /// KEP (Kayıtlı Elektronik Posta) adresi.
+  /// KVKK başvuruları yazılı olarak veya KEP üzerinden yapılabilir;
+  /// avukat metinlerinde başvuru kanalı olarak sayıldığı için burada da yer alır.
+  // TODO(şirket): KEP adresi varsa yazılmalı, yoksa 'Bulunmamaktadır' bırakılmalı.
+  static const String kep = '[KEP ADRESİ]';
+
+  /// Uyuşmazlıklarda yetkili mahkeme ve icra daireleri.
+  ///
+  /// Bu alan eskiden doğrudan Kullanım Koşulları metninin içine gömülü bir
+  /// yer tutucuydu ve [eksikBilgiVar] denetiminin DIŞINDA kalıyordu; yani
+  /// yayın öncesi testi geçtiği hâlde kullanıcı metinde köşeli parantezli
+  /// bir ifade görebiliyordu. Alan hâline getirilip denetime dâhil edildi.
+  // TODO(şirket): Şirket merkezine göre belirlenmeli (ör. 'Adana').
+  static const String yetkiliMahkeme = '[YETKİLİ MAHKEME YERİ]';
+
+  /// Gizlilik politikasının yayınlandığı herkese açık adres.
+  /// Google Play ve App Store bunu şart koşar; uygulama içi metin tek
+  /// başına yeterli değildir. Banka uyum ekibi de bu adresi istemektedir.
+  static const String gizlilikUrl =
+      'https://senbayrak.com.tr/gizlilik-politikasi.php';
 
   /// Metinlerin son güncellenme tarihi
   static const String sonGuncelleme = '27.07.2026';
@@ -56,6 +73,8 @@ class SirketBilgileri {
       kvkkEposta.contains('[') ||
       telefon.contains('[') ||
       verbis.contains('[') ||
+      kep.contains('[') ||
+      yetkiliMahkeme.contains('[') ||
       gizlilikUrl.contains('[');
 }
 
@@ -87,6 +106,8 @@ Uygulama üzerinden aşağıdaki kişisel verileriniz işlenmektedir:
 
 T.C. Kimlik Numaranız uygulama veritabanında SAKLANMAZ. Rezervasyon talebinizi ilettiğiniz anda, yalnızca kiralama sözleşmesinin hazırlanabilmesi amacıyla oluşturulan WhatsApp mesajına eklenir ve tarafınızca gönderilir.
 
+ÖDEME BİLGİSİ TOPLANMAZ. Uygulama; kart numarası, son kullanma tarihi, CVV, banka hesabı veya IBAN bilgisi toplamaz, işlemez ve saklamaz. Ödeme, teyit sürecinde tarafınıza iletilecek banka ödeme bağlantısı üzerinden, ilgili bankanın kendi güvenli sayfasında gerçekleşir.
+
 3. İŞLEME AMAÇLARI
 
 • Araç kiralama talebinizin alınması ve değerlendirilmesi
@@ -110,6 +131,16 @@ Rezervasyon talebiniz, tarafınızca WhatsApp uygulaması üzerinden Şirket'e i
 
 Verileriniz ayrıca, uygulamanın teknik altyapısını sağlayan Google Firebase hizmetlerinde barındırılmaktadır.
 
+Rezervasyon talebiniz teyit edilip kiralama süreci başladığında, kiralama sözleşmesinin ifası kapsamında verileriniz aşağıdaki taraflara KVKK m.8 ve m.9'da belirtilen şartlara uygun olarak aktarılabilir:
+
+• Ödeme kuruluşu / banka — yalnızca ödeme işleminin gerçekleştirilmesi amacıyla
+• Sigorta şirketleri — poliçe düzenlenmesi ve hasar süreçlerinin yürütülmesi amacıyla
+• Ekspertiz ve servis firmaları — araç durum tespiti ve bakım-onarım amacıyla
+• Yetkili trafik muayene istasyonları — mevzuat gereği muayene süreçlerinin takibi amacıyla
+• Yetkili kamu kurum ve kuruluşları — yasal yükümlülüklerin yerine getirilmesi amacıyla
+
+Bu aktarımlar uygulama üzerinden DEĞİL, kiralama sözleşmesi aşamasında şube süreçleri kapsamında gerçekleşir.
+
 Rızanızı vermemeniz hâlinde uygulamaya üye olabilir ve araçları inceleyebilirsiniz; ancak rezervasyon talebi iletemezsiniz. Bu durumda telefon yoluyla doğrudan iletişime geçebilirsiniz.
 
 6. SAKLAMA SÜRESİ
@@ -124,7 +155,9 @@ Kişisel verilerinizle ilgili olarak; işlenip işlenmediğini öğrenme, bilgi 
 
 Silme hakkınızı uygulama içinden Profilim > Hesabımı Sil adımıyla doğrudan kullanabilirsiniz.
 
-Diğer talepleriniz için ${SirketBilgileri.kvkkEposta} adresine başvurabilirsiniz. Başvurularınız en geç 30 gün içinde sonuçlandırılır.
+Diğer talepleriniz için ${SirketBilgileri.kvkkEposta} adresine, KEP kullanıyorsanız ${SirketBilgileri.kep} adresine yazılı olarak veya güvenli elektronik/mobil imzanızla başvurabilirsiniz. Başvurularınız niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırılır.
+
+Şirketimizin kişisel verilerin korunmasına ilişkin genel politikasına ${SirketBilgileri.gizlilikUrl} adresinden ulaşabilirsiniz.
 ''';
 
   // ── AÇIK RIZA METNİ (KVKK m.5/1, m.9) ──────────────────────────
@@ -179,7 +212,7 @@ Uygulamada yer alan araç bilgileri ve görselleri temsilîdir. Şirket, uygulam
 
 7. UYGULANACAK HUKUK
 
-Bu koşullara Türkiye Cumhuriyeti hukuku uygulanır. Uyuşmazlıklarda [YETKİLİ MAHKEME VE İCRA DAİRELERİ] yetkilidir. Tüketici sıfatını haiz kullanıcılar için tüketici hakem heyetleri ve tüketici mahkemelerinin yetkisi saklıdır.
+Bu koşullara Türkiye Cumhuriyeti hukuku uygulanır. Uyuşmazlıklarda ${SirketBilgileri.yetkiliMahkeme} Mahkemeleri ve İcra Daireleri yetkilidir. Tüketici sıfatını haiz kullanıcılar için tüketici hakem heyetleri ve tüketici mahkemelerinin yetkisi saklıdır.
 
 8. İLETİŞİM
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
@@ -77,27 +78,63 @@ class _SplashScreenState extends State<SplashScreen>
     _textController.addStatusListener((status) {
       debugPrint('TEXT ANIMATION: $status');
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 900), () {
-          if (mounted) {
-            _exitController.forward();
-          }
-        });
+        _cikisaHazirlan();
       }
     });
 
     _exitController.addStatusListener((status) {
       debugPrint('EXIT ANIMATION: $status');
-      if (status == AnimationStatus.completed) {
-        if (mounted) {
-          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-          _navigateBasedOnAuth();
-        }
+      if (status == AnimationStatus.completed && mounted && _hedef != null) {
+        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+        _git(_hedef!);
       }
     });
 
-    debugPrint('SPLASH: forward() çağrılıyor');
+    // Ağ işini ANİMASYONLA PARALEL başlat.
+    //
+    // Eskiden sıra şöyleydi: logo belir → yazı belir → 900 ms bekle →
+    // her şeyi soldur → SONRA ağ çağrılarını yap. Yani ~1,9. saniyeden
+    // itibaren içerik tamamen sönmüş oluyor, ağ çağrıları ise 8 saniyeye
+    // kadar sürebiliyordu. Kullanıcı bu süre boyunca logosuz, yazısız,
+    // göstergesiz BOŞ MAVİ bir ekrana bakıyor ve uygulamanın donduğunu
+    // sanıyordu. Artık ağ işi açılışta başlar, animasyonla üst üste biner
+    // ve ekran hedef belli olmadan sönmez.
+    _hedefFuture = _hedefiBelirle();
+
     _logoController.forward();
-    debugPrint('SPLASH: forward() çağrıldı');
+  }
+
+  /// Yönlendirilecek ekran. Ağ işi bitince dolar.
+  Widget? _hedef;
+  Future<Widget>? _hedefFuture;
+
+  /// Bekleme uzarsa gösterge çıkarılır ki ekran donmuş görünmesin.
+  bool _uzunBekleme = false;
+
+  /// Animasyon bitti; hedef hazır olduğunda çıkış soldurmasını başlatır.
+  Future<void> _cikisaHazirlan() async {
+    // Marka anının çok kısa kalmaması için asgari bekleme.
+    final asgariGosterim = Future<void>.delayed(
+      const Duration(milliseconds: 900),
+    );
+
+    // Hedef 1,2 saniyede gelmezse kullanıcıya bir şeyler olduğunu göster.
+    final gostergeZamani = Future<void>.delayed(
+      const Duration(milliseconds: 1200),
+    ).then((_) {
+      if (mounted && _hedef == null) {
+        setState(() => _uzunBekleme = true);
+      }
+    });
+
+    final hedef = await (_hedefFuture ?? _hedefiBelirle());
+    await asgariGosterim;
+    unawaited(gostergeZamani);
+
+    if (!mounted) return;
+
+    _hedef = hedef;
+    _exitController.forward();
   }
 
   /// Açılıştaki ağ çağrıları için üst sınır.
@@ -124,13 +161,14 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Future<void> _navigateBasedOnAuth() async {
+  /// Hangi ekrana gidileceğini belirler. Yönlendirmeyi KENDİSİ yapmaz;
+  /// yalnızca hedefi döndürür, böylece animasyonla paralel çalışabilir.
+  Future<Widget> _hedefiBelirle() async {
     final authService = AuthService();
 
     // Giriş yapılmamışsa → HomeScreen (misafir modu, görüntüleme serbest)
     if (!authService.isLoggedIn) {
-      _git(const HomeScreen());
-      return;
+      return const HomeScreen();
     }
 
     // Buradan sonrası ağ erişimi gerektirir. Bağlantı yoksa veya yavaşsa
@@ -139,25 +177,22 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       // Email doğrulanmamışsa → Doğrulama ekranı
       await authService.reloadUser().timeout(_agZamanAsimi);
-      if (!mounted) return;
 
       if (!authService.isEmailVerified) {
-        _git(const EmailVerificationScreen());
-        return;
+        return const EmailVerificationScreen();
       }
 
       // Admin mi? Role'e göre yönlendir
       final isAdmin =
           await authService.isCurrentUserAdmin().timeout(_agZamanAsimi);
-      if (!mounted) return;
 
-      _git(isAdmin ? const AdminDashboardScreen() : const HomeScreen());
+      return isAdmin ? const AdminDashboardScreen() : const HomeScreen();
     } catch (e) {
       // Ağ hatası, zaman aşımı veya oturumun sunucuda geçersiz kılınması.
       // Kullanıcıyı kilitlemek yerine uygulamayı açıyoruz; oturumu varsa
       // ana sayfada normal şekilde kullanmaya devam eder.
       debugPrint('SPLASH: yönlendirme sırasında hata — $e');
-      _git(const HomeScreen());
+      return const HomeScreen();
     }
   }
 
@@ -208,6 +243,27 @@ class _SplashScreenState extends State<SplashScreen>
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 32,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Bağlantı yavaşsa, ekranın donmadığını göstermek için.
+                // Yer kaymasın diye alan her hâlükârda ayrılır.
+                SizedBox(
+                  height: 56,
+                  child: AnimatedOpacity(
+                    opacity: _uzunBekleme ? 1 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white70,
+                        ),
                       ),
                     ),
                   ),

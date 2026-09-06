@@ -10,6 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Material/Cupertino widget'larının Türkçe metinleri için. Bu paket
+  # olmadan takvim ve saat seçici İngilizce açılıyordu ("Select date",
+  # "September 2026", "Cancel/OK") — uygulamanın geri kalanı Türkçeyken.
+  flutter_localizations:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
@@ -17,7 +22,7 @@ dependencies:
   # kod tabanında hiçbir yerde kullanılmıyorlardı, yalnızca uygulama
   # boyutunu ve derleme süresini artırıyorlardı.
   url_launcher: ^6.3.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   cached_network_image: ^3.3.1
   image_picker: ^1.0.7
 

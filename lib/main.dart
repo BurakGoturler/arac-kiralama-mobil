@@ -1,6 +1,7 @@
 import 'package:car_rental_mvp/ui/screens/splash_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
@@ -63,6 +64,16 @@ class MyApp extends StatelessWidget {
       title: 'Şenbayrak Araç Kiralama',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      // Uygulama tek dilli (Türkçe). Bu üç delege olmadan Flutter'ın
+      // hazır widget'ları (takvim, saat seçici, metin seçim menüsü,
+      // "Cancel/OK" düğmeleri) İngilizce'ye düşer.
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('tr', 'TR')],
+      locale: const Locale('tr', 'TR'),
       home: const SplashScreen(),
     );
   }
