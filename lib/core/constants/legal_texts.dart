@@ -38,15 +38,37 @@ class SirketBilgileri {
   /// Tebligata esas iletişim telefonu (Merkez Şube).
   static const String telefon = '0 (322) 435 56 36';
 
-  /// VERBİS kaydı varsa sicil numarası, yoksa "Kayıt yükümlülüğü
-  /// bulunmamaktadır" ifadesi bırakılabilir.
-  // TODO(şirket): VERBİS kaydı sorgulanıp sicil no ya da muafiyet beyanı yazılmalı.
-  static const String verbis = '[VERBİS SİCİL NO / MUAFİYET BEYANI]';
+  /// VERBİS (Veri Sorumluları Sicili) kayıt durumu.
+  ///
+  /// Şirket muafiyet kapsamındadır: Kişisel Verileri Koruma Kurulu'nun
+  /// istisna kararları uyarınca, yıllık çalışan sayısı 50'den az VE yıllık
+  /// mali bilanço toplamı 100 milyon TL'den az olan veri sorumluları Sicile
+  /// kayıtla yükümlü değildir. İki şart birlikte aranır. Ana faaliyeti özel
+  /// nitelikli kişisel veri işlemek olanlar eşiğe bakılmaksızın kayıtlıdır;
+  /// araç kiralama bu kapsamda değildir (sürücü belgesi KVKK m.6 anlamında
+  /// özel nitelikli veri sayılmaz).
+  ///
+  /// Eşik değerleri şirket tarafından beyan edilmiştir; muafiyetin sürüp
+  /// sürmediği her yıl bilanço ve çalışan sayısı üzerinden yeniden kontrol
+  /// edilmelidir. Eşik aşılırsa Sicile kayıt zorunlu hâle gelir.
+  ///
+  /// DİKKAT: Muafiyet YALNIZCA Sicile kayıt yükümlülüğünü kaldırır.
+  /// Aydınlatma yükümlülüğü, veri güvenliği tedbirleri, kişisel veri işleme
+  /// envanteri ve saklama/imha politikası yükümlülükleri aynen sürer.
+  static const String verbis =
+      'Kayıt yükümlülüğü bulunmamaktadır. Şirket, yıllık çalışan sayısı '
+      "50'den az ve yıllık mali bilanço toplamı 100 milyon TL'den az "
+      'olduğundan, Kişisel Verileri Koruma Kurulu kararları uyarınca Veri '
+      'Sorumluları Siciline kayıt yükümlülüğünden istisna tutulmuştur.';
 
   /// KEP (Kayıtlı Elektronik Posta) adresi.
   /// KVKK başvuruları yazılı olarak veya KEP üzerinden yapılabilir;
   /// avukat metinlerinde başvuru kanalı olarak sayıldığı için burada da yer alır.
-  static const String kep = 'Bulunmamaktadır';
+  ///
+  /// Bu alan başvuru metninin içine gömülü olarak kullanılıyor
+  /// ("KEP kullanıyorsanız ... adresine"), bu yüzden buraya adres dışında
+  /// bir ifade yazılmamalıdır; KEP yoksa o cümle metinden çıkarılmalıdır.
+  static const String kep = 'senbayrakpetrol@hs03.kep.tr';
 
   /// Uyuşmazlıklarda yetkili mahkeme ve icra daireleri.
   ///
@@ -63,7 +85,7 @@ class SirketBilgileri {
       'https://senbayrak.com.tr/gizlilik-politikasi.php';
 
   /// Metinlerin son güncellenme tarihi
-  static const String sonGuncelleme = '06.09.2026';
+  static const String sonGuncelleme = '07.09.2026';
 
   /// Yer tutucuların doldurulup doldurulmadığını anlamak için.
   /// Yayın öncesi kontrol listesinde ve testlerde kullanılır.
