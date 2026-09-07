@@ -135,6 +135,26 @@ class AppHelpers {
     return true;
   }
 
+  /// Araç kartının alt satırında gösterilen özet: motor hacmi ve ilk özellik.
+  ///
+  /// Kart bu satırı eskiden `'${vehicle.engineSize} • ${vehicle.features.first}'`
+  /// diye kuruyordu. Ekipman listesi BOŞ olan tek bir araç listeye girdiğinde
+  /// `.first` "Bad state: No element" fırlatıyor ve araç listesinin tamamı
+  /// çöküyordu — gerçek filo içe aktarıldığında tam olarak bu oldu.
+  ///
+  /// Mantık buraya taşındı çünkü kartın kendisi AuthService ve
+  /// FirestoreService kullanıyor; widget testi Firebase başlatmayı
+  /// gerektiriyordu. Burada saf bir fonksiyon olarak test edilebiliyor.
+  ///
+  /// Dolu olan parçalar birleştirilir; hiçbiri yoksa boş dize döner ve kart
+  /// yine sorunsuz çizilir.
+  static String aracOzetSatiri(String engineSize, List<String> features) {
+    return <String>[
+      engineSize,
+      if (features.isNotEmpty) features.first,
+    ].where((parca) => parca.trim().isNotEmpty).join(' • ');
+  }
+
   static double totalPrice(double dailyPrice, DateTime start, DateTime end) {
     final days = daysBetween(start, end);
     return dailyPrice * days;

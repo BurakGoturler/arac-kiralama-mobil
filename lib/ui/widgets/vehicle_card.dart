@@ -372,7 +372,7 @@ class _CardFooter extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            '${vehicle.engineSize} • ${vehicle.features.first}',
+            AppHelpers.aracOzetSatiri(vehicle.engineSize, vehicle.features),
             style: AppTextStyles.bodySmall,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

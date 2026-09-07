@@ -398,6 +398,25 @@ class _DetailSliverAppBar extends StatelessWidget {
         stretchModes: const [StretchMode.zoomBackground],
         background: Stack(
           children: [
+            // Görseli hiç yüklenmemiş araçlar için yer tutucu.
+            //
+            // İçe aktarma betiği görselleri boş bırakıyor (ilan görselleri
+            // dışarıdan çekilemiyor), bu yüzden fotoğraf yüklenene kadar
+            // galeri boş kalıyor. Boş bir PageView çökmez ama detay
+            // ekranının üst yarısı bomboş bir alan olarak görünür ve
+            // uygulama bozuk sanılır.
+            if (vehicle.galleryPaths.isEmpty)
+              Container(
+                color: AppColors.background,
+                child: const Center(
+                  child: Icon(
+                    Icons.directions_car,
+                    size: 72,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              )
+            else
             PageView.builder(
               itemCount: vehicle.galleryPaths.length,
               onPageChanged: onImageChange,

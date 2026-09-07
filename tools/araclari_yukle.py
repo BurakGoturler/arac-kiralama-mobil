@@ -146,6 +146,27 @@ def _oku_string(alan):
 
 # ── Veri dönüşümü ────────────────────────────────────────────────────
 
+def _ozellikler(arac):
+    """Araç kartında gösterilecek doğrulanmış teknik özellikler.
+
+    Yalnızca arac_verisi.json içinde gerçekten bulunan alanlardan üretilir:
+    vites, yakıt, koltuk sayısı ve gövde tipi. Hiçbir donanım bilgisi
+    tahmin edilmez veya uydurulmaz.
+    """
+    ozellikler = []
+
+    if arac.get("vites"):
+        ozellikler.append(f"{arac['vites']} vites")
+    if arac.get("yakit"):
+        ozellikler.append(arac["yakit"])
+    if arac.get("koltuk"):
+        ozellikler.append(f"{arac['koltuk']} koltuk")
+    if arac.get("kasaTipi"):
+        ozellikler.append(arac["kasaTipi"])
+
+    return ozellikler
+
+
 def firestore_belgesi(arac):
     """arac_verisi.json kaydını Vehicle modelinin beklediği alanlara çevirir."""
     return {
@@ -164,9 +185,20 @@ def firestore_belgesi(arac):
         "imagePath": "",
         "galleryPaths": [],
 
-        # Ekipman listesi bilerek boş — ilanlardaki liste "ücretli
-        # opsiyonlar", yani dâhil olan donanım değil.
-        "features": [],
+        # Ekipman listesi, YALNIZCA ilandan doğrulanmış teknik
+        # özelliklerden üretilir.
+        #
+        # İlanlardaki "özellikler" bölümü dâhil olan donanımı değil ücretli
+        # opsiyonları listeliyordu; oraya bakıp "klima, navigasyon" yazmak
+        # müşteriye yanlış beyan olurdu. Bu yüzden liste önce tamamen boş
+        # bırakılmıştı.
+        #
+        # Ancak boş liste uygulamada araç kartını çökertiyordu
+        # (features.first → "Bad state: No element"). Kart tarafı boş listeye
+        # dayanıklı hâle getirildi; buradaki liste de uydurma bilgi
+        # eklemeden, zaten elimizdeki doğrulanmış alanlardan dolduruluyor.
+        # Böylece kartın alt satırı anlamlı bir bilgi gösterir.
+        "features": _ozellikler(arac),
 
         "isAvailable": True,
         "isFeatured": False,

@@ -133,6 +133,36 @@ void main() {
     });
   });
 
+  group('Araç kartı özet satırı', () {
+    // REGRESYON: Kart bu satırı `features.first` ile kuruyordu. Gerçek filo
+    // içe aktarıldığında ekipman listesi boş olduğu için tek bir araç bile
+    // "Bad state: No element" fırlatıp ARAÇ LİSTESİNİN TAMAMINI çökertti.
+    test('ekipman listesi boşken çökmez, motor hacmini gösterir', () {
+      expect(AppHelpers.aracOzetSatiri('1.4 - 1.6 L', const []),
+          '1.4 - 1.6 L');
+    });
+
+    test('ekipman varsa motor hacmiyle birleştirir', () {
+      expect(
+        AppHelpers.aracOzetSatiri('1.4 - 1.6 L', const ['Otomatik vites', 'Dizel']),
+        '1.4 - 1.6 L • Otomatik vites',
+      );
+    });
+
+    test('motor hacmi boşsa yalnızca ekipmanı gösterir', () {
+      expect(AppHelpers.aracOzetSatiri('', const ['Manuel vites']),
+          'Manuel vites');
+    });
+
+    test('ikisi de boşsa boş dize döner', () {
+      expect(AppHelpers.aracOzetSatiri('', const []), '');
+    });
+
+    test('yalnızca boşluktan oluşan değerleri yok sayar', () {
+      expect(AppHelpers.aracOzetSatiri('   ', const ['  ']), '');
+    });
+  });
+
   group('KVKK yayın öncesi kontrolü', () {
     // Bu test, şirket bilgileri doldurulmadan yayına çıkılmasını engeller.
     // Yer tutucular tamamlandığında kendiliğinden geçer.
