@@ -132,6 +132,18 @@ T.C. Kimlik Numaranız uygulama veritabanında SAKLANMAZ. Rezervasyon talebinizi
 
 ÖDEME BİLGİSİ TOPLANMAZ. Uygulama; kart numarası, son kullanma tarihi, CVV, banka hesabı veya IBAN bilgisi toplamaz, işlemez ve saklamaz. Ödeme, teyit sürecinde tarafınıza iletilecek banka ödeme bağlantısı üzerinden, ilgili bankanın kendi güvenli sayfasında gerçekleşir.
 
+2/A. ŞUBE AŞAMASINDA İŞLENEN VERİLER
+
+Aşağıdaki veriler UYGULAMA ÜZERİNDEN TOPLANMAZ ve uygulama veritabanında saklanmaz. Bunlar yalnızca rezervasyon talebiniz teyit edildikten sonra, araç tesliminde şube süreçleri kapsamında; kiralama sözleşmesinin kurulması ve ifası ile mevzuattan doğan yükümlülüklerin yerine getirilmesi amacıyla işlenir:
+
+• Kimlik belgesi bilgileri (T.C. Kimlik Numarası dâhil)
+• Sürücü belgesi bilgileri
+• Yerleşim yeri (ikametgâh) belgesi
+• Adli sicil kaydı
+• Findeks / kredi kayıt bürosu sorgu sonucu
+
+ADLİ SİCİL KAYDI ÖZEL NİTELİKLİ KİŞİSEL VERİDİR. KVKK m.6 uyarınca bu veri, ancak kanunlarda öngörülen hâllerde veya açık rızanıza dayanılarak işlenebilir. Bu veri bakımından Kişisel Verileri Koruma Kurulu tarafından belirlenen ek idari ve teknik tedbirler uygulanır. Söz konusu veri şube aşamasında, ayrıca bilgilendirilmeniz ve gerekli hukuki sebebin sağlanması suretiyle işlenir; uygulama bu veriye hiçbir aşamada erişmez.
+
 3. İŞLEME AMAÇLARI
 
 • Araç kiralama talebinizin alınması ve değerlendirilmesi
@@ -158,6 +170,8 @@ Verileriniz ayrıca, uygulamanın teknik altyapısını sağlayan Google Firebas
 Rezervasyon talebiniz teyit edilip kiralama süreci başladığında, kiralama sözleşmesinin ifası kapsamında verileriniz aşağıdaki taraflara KVKK m.8 ve m.9'da belirtilen şartlara uygun olarak aktarılabilir:
 
 • Ödeme kuruluşu / banka — yalnızca ödeme işleminin gerçekleştirilmesi amacıyla
+• Emniyet Genel Müdürlüğü — Kiralık Araç Bildirim Sistemi (KABİS) kapsamında, ilgili mevzuat uyarınca kiralama işleminin bildirilmesi amacıyla (hukuki yükümlülük)
+• Kredi Kayıt Bürosu / Findeks — kiralama öncesi risk değerlendirmesi amacıyla
 • Sigorta şirketleri — poliçe düzenlenmesi ve hasar süreçlerinin yürütülmesi amacıyla
 • Ekspertiz ve servis firmaları — araç durum tespiti ve bakım-onarım amacıyla
 • Yetkili trafik muayene istasyonları — mevzuat gereği muayene süreçlerinin takibi amacıyla
@@ -171,7 +185,10 @@ Rızanızı vermemeniz hâlinde uygulamaya üye olabilir ve araçları inceleyeb
 
 • Üyelik verileriniz: Hesabınız açık kaldığı sürece
 • Rezervasyon talep kayıtları: Kayıt tarihinden itibaren 2 yıl
-• Hesabınızı sildiğinizde: Verileriniz derhal ve kalıcı olarak silinir
+• Hesabınızı sildiğinizde: Uygulamadaki verileriniz derhal ve kalıcı olarak silinir
+• Şube aşamasında alınan belgeler (2/A): Kiralama sözleşmesinden doğan hukuki yükümlülükler ve ilgili mevzuatta öngörülen saklama süreleri boyunca
+
+Uygulama içinden hesabınızı silmeniz, şube aşamasında kiralama sözleşmesi kapsamında alınmış belgelerin silinmesi sonucunu doğurmaz; bu belgeler mevzuattan doğan saklama yükümlülüğüne tabidir. Bu belgelere ilişkin taleplerinizi aşağıdaki başvuru kanallarından iletebilirsiniz.
 
 7. HAKLARINIZ (KVKK m.11)
 
