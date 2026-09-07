@@ -60,6 +60,32 @@ VERI_DOSYASI = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             "arac_verisi.json")
 
 
+def _cikti_kodlamasini_duzelt():
+    """Windows'ta Türkçe çıktının betiği düşürmesini engeller.
+
+    Python, çıktı bir konsola bağlıyken UTF-8 kullanır; ancak çıktı bir
+    dosyaya yönlendirildiğinde veya boru hattına verildiğinde sistemin ANSI
+    kod sayfasına (Türkçe Windows'ta cp1252) düşer. Bu betikteki "Şenbayrak",
+    "Değişiklikleri", "✓" ve "→" gibi karakterler cp1252'de yoktur; yazma
+    denemesi UnicodeEncodeError fırlatır ve betik daha giriş yapmadan,
+    yaptığı işi söylemeden çöker.
+
+    Bu, betiğin çıktısı kaydedilmek istendiğinde (ki bir veri aktarımında
+    doğal bir istektir) her seferinde oluyordu. Akışlar UTF-8'e çevrilerek
+    hem konsolda hem yönlendirmede aynı davranış sağlanır.
+    """
+    for akis in (sys.stdout, sys.stderr):
+        try:
+            akis.reconfigure(encoding="utf-8")
+        except (AttributeError, OSError):
+            # Çok eski Python veya alışılmadık bir akış: sessizce geç.
+            # Konsolda zaten çalışıyor; burada durmak için sebep yok.
+            pass
+
+
+_cikti_kodlamasini_duzelt()
+
+
 # ── HTTP yardımcıları ────────────────────────────────────────────────
 
 def _istek(url, veri=None, yontem="GET", jeton=None):
