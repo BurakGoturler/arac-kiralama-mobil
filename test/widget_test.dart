@@ -149,9 +149,26 @@ void main() {
       );
     });
 
-    test('motor hacmi boşsa yalnızca ekipmanı gösterir', () {
+    test('motor hacmi boşsa iki ekipman gösterir', () {
+      // İçe aktarılan filoda motor hacmi bilerek boş (kaynak veri ilan
+      // sitesinin filtre aralığıydı ve yanlıştı). Satırın tek kelimeye
+      // düşmemesi için yerini ikinci özellik alır.
+      expect(
+        AppHelpers.aracOzetSatiri('', const ['Otomatik vites', 'Benzin', '5 koltuk']),
+        'Otomatik vites • Benzin',
+      );
+    });
+
+    test('motor hacmi boş ve tek ekipman varsa onu gösterir', () {
       expect(AppHelpers.aracOzetSatiri('', const ['Manuel vites']),
           'Manuel vites');
+    });
+
+    test('en fazla iki parça gösterir', () {
+      expect(
+        AppHelpers.aracOzetSatiri('2.0 L', const ['Otomatik vites', 'Dizel', '5 koltuk']),
+        '2.0 L • Otomatik vites',
+      );
     });
 
     test('ikisi de boşsa boş dize döner', () {

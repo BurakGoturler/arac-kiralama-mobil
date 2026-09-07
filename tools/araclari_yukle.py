@@ -163,6 +163,8 @@ def _ozellikler(arac):
         ozellikler.append(f"{arac['koltuk']} koltuk")
     if arac.get("kasaTipi"):
         ozellikler.append(arac["kasaTipi"])
+    if arac.get("yil"):
+        ozellikler.append(f"{arac['yil']} model")
 
     return ozellikler
 
@@ -177,7 +179,25 @@ def firestore_belgesi(arac):
         "transmission": arac["vites"],
         "fuelType": arac["yakit"],
         "seats": int(arac["koltuk"]),
-        "engineSize": arac["motorHacmi"],
+        # motorHacmi YAZILMIYOR — kaynak veri güvenilir değil.
+        #
+        # İlanlardan çıkarılan bu alan gerçek motor hacmi değil, sahibinden'in
+        # ARAMA FİLTRESİ ARALIĞI: 19 aracın 14'ünde aynı değer ("1.4 - 1.6 L")
+        # görünüyor ve bazıları açıkça yanlış — BMW 520i (gerçekte 2.0 L) ve
+        # Mitsubishi L200 pickup (gerçekte 2.4 L) de "1.4 - 1.6 L" olarak
+        # geliyor. Renault Taliant'ta ise değer "1.0 L'ye kadar", yani bir
+        # spec değil doğrudan filtre etiketi.
+        #
+        # Bu alan hem araç kartında hem detay ekranında "Motor" başlığıyla
+        # müşteriye gösteriliyor. Yanlış bir teknik özellik yayımlamaktansa
+        # boş bırakılıyor.
+        #
+        # DİKKAT: Doğru motor hacimleri yönetim panelinden girilebilir, ancak
+        # bu betik dokümanı updateMask'siz PATCH ile TÜMÜYLE değiştiriyor —
+        # yani panelden girilen değerleri EZER. Betik yeniden çalıştırılacaksa
+        # önce elle girilen veriler yedeklenmeli ya da veri dosyasına
+        # işlenmelidir.
+        "engineSize": "",
         "year": int(arac["yil"]),
 
         # Görseller yönetim panelinden yüklenir; Storage'a yazma yetkisi

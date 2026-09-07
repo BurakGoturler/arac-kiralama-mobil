@@ -148,11 +148,18 @@ class AppHelpers {
   ///
   /// Dolu olan parçalar birleştirilir; hiçbiri yoksa boş dize döner ve kart
   /// yine sorunsuz çizilir.
+  ///
+  /// En çok iki parça gösterilir. Motor hacmi boş olduğunda (içe aktarılan
+  /// filoda öyle: kaynak veri gerçek motor hacmi değil, sahibinden'in arama
+  /// filtresi aralığıydı ve BMW 520i ile Mitsubishi L200 için açıkça yanlıştı)
+  /// yerini ikinci bir özellik alır; böylece satır tek kelimeye düşmez.
   static String aracOzetSatiri(String engineSize, List<String> features) {
-    return <String>[
+    final parcalar = <String>[
       engineSize,
-      if (features.isNotEmpty) features.first,
-    ].where((parca) => parca.trim().isNotEmpty).join(' • ');
+      ...features,
+    ].where((parca) => parca.trim().isNotEmpty).take(2);
+
+    return parcalar.join(' • ');
   }
 
   static double totalPrice(double dailyPrice, DateTime start, DateTime end) {

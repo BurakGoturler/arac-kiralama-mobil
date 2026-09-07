@@ -704,6 +704,14 @@ class _SpecsGridSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Değeri boş olan özellik gösterilmez.
+    //
+    // İçe aktarılan filoda "Motor" alanı bilerek boş: kaynak veri gerçek
+    // motor hacmi değil, ilan sitesinin arama filtresi aralığıydı ve bazı
+    // araçlarda açıkça yanlıştı (BMW 520i ve Mitsubishi L200 için
+    // "1.4 - 1.6 L"). Boş bırakılan alanı "Motor: —" diye göstermek yerine
+    // kutucuk hiç çizilmiyor. Doğru değer panelden girilirse kendiliğinden
+    // görünür hâle gelir.
     final specs = [
       _SpecItem(
           icon: Icons.settings_rounded,
@@ -721,7 +729,7 @@ class _SpecsGridSection extends StatelessWidget {
           icon: Icons.speed_rounded,
           label: 'Motor',
           value: vehicle.engineSize),
-    ];
+    ].where((s) => s.value.trim().isNotEmpty).toList();
 
     return _SectionCard(
       child: Column(
