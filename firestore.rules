@@ -10,6 +10,17 @@ rules_version = '2';
 //      firebase deploy --only firestore:rules
 // ═══════════════════════════════════════════════════════════════════
 
+// 07.09.2026 — Bu satır, kuralların canlıya gerçekten yüklendiğini
+// doğrulamak için eklendi. CLI, dosya içeriği yüklü sürümle aynı
+// göründüğünde yüklemeyi atlıyor ("already up to date, skipping upload");
+// bu durumda canlıdaki kuralın dosyayla aynı olduğu DOĞRULANAMIYOR.
+// İçerik değiştiği için bu dağıtım atlanamaz ve gerçekten yüklenir.
+//
+// Belirti: vehicles koleksiyonuna kimliksiz okuma isteği 403
+// PERMISSION_DENIED dönüyor; oysa aşağıdaki kural bu okumayı herkese
+// açıyor (allow read: if true). App Check zorlaması kapalı, veritabanı
+// tek ve (default), Native modda.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
