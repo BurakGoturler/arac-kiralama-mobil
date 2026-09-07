@@ -196,7 +196,15 @@ Rezervasyon talebimin iletilebilmesi amacıyla ad, soyad, telefon numarası, T.C
 
 Bu rızayı vermek zorunda değilsiniz. Rıza vermeden de üye olabilir ve araçları inceleyebilirsiniz; yalnızca uygulama üzerinden rezervasyon talebi iletemezsiniz.
 
-Rızanızı dilediğiniz zaman ${SirketBilgileri.kvkkEposta} adresine bildirerek geri alabilirsiniz. Geri alma, o tarihe kadar yapılmış işlemleri etkilemez.
+Rızanızı dilediğiniz zaman, herhangi bir gerekçe göstermeksizin geri alabilirsiniz:
+
+• Uygulama içindeki "Profilim" bölümünden tek dokunuşla,
+• ${SirketBilgileri.kvkkEposta} adresine yazılı başvuruyla,
+• ${SirketBilgileri.kep} KEP adresine yazılı başvuruyla.
+
+Geri alma, geri alma tarihinden sonraki aktarımları etkiler; o tarihe kadar hukuka uygun biçimde yapılmış işlemleri etkilemez.
+
+Rıza vermemeniz hâlinde rezervasyon talebinizi telefon veya şube gibi açık rıza gerektirmeyen kanallarımızdan iletmeniz her zaman mümkündür.
 ''';
 
   // ── KULLANIM KOŞULLARI ─────────────────────────────────────────
