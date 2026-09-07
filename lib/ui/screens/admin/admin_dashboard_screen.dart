@@ -6,6 +6,7 @@ import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_vehicle_form_screen.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_campaign_form_screen.dart';
+import 'package:car_rental_mvp/ui/screens/admin/admin_2fa_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -151,6 +152,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       appBar: AppBar(
         title: const Text('Yönetim Paneli'),
         actions: [
+          IconButton(
+            onPressed: () => context.sayfayaGit(const Admin2faScreen()),
+            icon: const Icon(Icons.shield_outlined),
+            tooltip: 'İki Aşamalı Doğrulama',
+          ),
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout_rounded),

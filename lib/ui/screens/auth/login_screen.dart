@@ -1,8 +1,10 @@
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/auth/register_screen.dart';
 import 'package:car_rental_mvp/ui/screens/auth/email_verification_screen.dart';
+import 'package:car_rental_mvp/ui/screens/auth/mfa_challenge_screen.dart';
 import 'package:car_rental_mvp/ui/screens/home_screen.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -47,10 +49,28 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authService.signIn(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+      try {
+        await _authService.signIn(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+      } on FirebaseAuthMultiFactorException catch (e) {
+        // Parola doğru ama hesapta ikinci faktör kayıtlı. Firebase bu durumda
+        // oturumu AÇMAZ, bu istisnayı fırlatır. Bunu dıştaki genel catch'e
+        // bırakırsak kullanıcı "e-posta veya şifre hatalı" mesajı görür ve
+        // hesabına hiç giremez; bu yüzden burada ayrıca yakalanıyor.
+        if (!mounted) return;
+        final dogrulandi = await context.sayfayaGit<bool>(
+          MfaChallengeScreen(resolver: e.resolver),
+        );
+        if (dogrulandi != true) {
+          if (mounted) {
+            setState(() => _errorMessage =
+                'Giriş tamamlanmadı. Doğrulama kodu girilmesi gerekiyor.');
+          }
+          return;
+        }
+      }
 
       // Email doğrulanmamışsa doğrulama ekranına gönder
       await _authService.reloadUser();

@@ -51,6 +51,15 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+
+        <!-- Authenticator uygulamalari (Android 11+ gorunurluk).
+             Yonetici hesabina TOTP kurarken otpauth:// adresi dogrudan
+             Google/Microsoft Authenticator'da acilir. Bu tanim olmadan
+             canLaunchUrl false doner ve buton calismaz. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="otpauth" />
+        </intent>
     </queries>
 
 </manifest>
