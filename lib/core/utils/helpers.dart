@@ -152,11 +152,29 @@ class AppHelpers {
   /// En çok iki parça gösterilir. Motor hacmi boş olduğunda (içe aktarılan
   /// filoda öyle: kaynak veri gerçek motor hacmi değil, sahibinden'in arama
   /// filtresi aralığıydı ve BMW 520i ile Mitsubishi L200 için açıkça yanlıştı)
-  /// yerini ikinci bir özellik alır; böylece satır tek kelimeye düşmez.
-  static String aracOzetSatiri(String engineSize, List<String> features) {
+  /// yerini bir özellik alır; böylece satır boş kalmaz.
+  ///
+  /// [zatenGosterilen], kartın üstündeki rozetlerde hâlihazırda görünen
+  /// değerlerdir (vites, yakıt, koltuk, yıl). Bunlarla örtüşen özellikler
+  /// elenir. Cihazda ölçüldü: eleme olmadan alt satır "Manuel vites • Dizel"
+  /// yazıyordu ve hemen üstündeki rozetlerin birebir tekrarıydı. Eleme ile
+  /// yalnızca rozetlerde bulunmayan bilgi (ör. gövde tipi) gösteriliyor.
+  static String aracOzetSatiri(
+    String engineSize,
+    List<String> features, {
+    Set<String> zatenGosterilen = const {},
+  }) {
+    final gosterilen =
+        zatenGosterilen.map((d) => d.toLowerCase().trim()).toList();
+
+    bool tekrar(String parca) {
+      final p = parca.toLowerCase().trim();
+      return gosterilen.any((g) => g.isNotEmpty && p.contains(g));
+    }
+
     final parcalar = <String>[
       engineSize,
-      ...features,
+      ...features.where((f) => !tekrar(f)),
     ].where((parca) => parca.trim().isNotEmpty).take(2);
 
     return parcalar.join(' • ');

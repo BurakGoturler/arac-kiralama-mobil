@@ -372,7 +372,17 @@ class _CardFooter extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            AppHelpers.aracOzetSatiri(vehicle.engineSize, vehicle.features),
+            AppHelpers.aracOzetSatiri(
+              vehicle.engineSize,
+              vehicle.features,
+              // Üstteki rozetlerde zaten görünenler; tekrar edilmesin.
+              zatenGosterilen: {
+                vehicle.transmissionShort,
+                vehicle.fuelType,
+                '${vehicle.seats} koltuk',
+                '${vehicle.year}',
+              },
+            ),
             style: AppTextStyles.bodySmall,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

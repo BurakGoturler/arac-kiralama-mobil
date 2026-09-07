@@ -164,6 +164,27 @@ void main() {
           'Manuel vites');
     });
 
+    test('rozetlerde zaten görünen özellikleri elemez', () {
+      // Cihazda ölçüldü: eleme olmadan alt satır üstteki rozetlerin
+      // birebir tekrarı oluyordu ("Manuel vites • Dizel").
+      expect(
+        AppHelpers.aracOzetSatiri(
+          '',
+          const ['Manuel vites', 'Dizel', '5 koltuk', 'Camlı Van', '2020 model'],
+          zatenGosterilen: const {'Manuel', 'Dizel', '5 koltuk', '2020'},
+        ),
+        'Camlı Van',
+      );
+    });
+
+    test('eleme sonrası hiçbir özellik kalmazsa boş döner', () {
+      expect(
+        AppHelpers.aracOzetSatiri('', const ['Manuel vites'],
+            zatenGosterilen: const {'Manuel'}),
+        '',
+      );
+    });
+
     test('en fazla iki parça gösterir', () {
       expect(
         AppHelpers.aracOzetSatiri('2.0 L', const ['Otomatik vites', 'Dizel', '5 koltuk']),
