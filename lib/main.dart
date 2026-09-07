@@ -20,27 +20,38 @@ void main() async {
 
 /// App Check'in devreye alınıp alınmayacağı.
 ///
-/// KAPALI. Firebase projesinde App Check API'si henüz etkin değil; bu hâlde
-/// sağlayıcıyı başlatmak her istekte 403 döndürüp log'u
-/// "Error returned from API ... has not been used in project" ve ardından
-/// "Too many attempts" satırlarıyla dolduruyor. Bu satırlar bir hata DEĞİL:
-/// SDK yer tutucu token'la devam eder, istek normal şekilde gider. Ama gerçek
-/// hataları görünmez hâle getirdikleri için kapalı tutuluyor.
+/// AÇIK. App Check, Firestore ve Storage isteklerinin gerçekten bu
+/// uygulamadan geldiğini doğrular. Kapalıyken güvenlik kuralları hâlâ
+/// koruyordu, ancak istekleri uygulama dışından da (curl, betik, değiştirilmiş
+/// paket) göndermek mümkündü.
 ///
-/// AÇMADAN ÖNCE konsol tarafı sırasıyla tamamlanmalı:
-///   1. console.cloud.google.com → API'ler → "Firebase App Check API" → Etkinleştir
-///   2. Firebase Console → App Check → Android uygulamasını Play Integrity ile kaydet
-///   3. Debug derlemesini bir kez çalıştır, logcat'teki debug token'ı
-///      App Check → uygulama → "Manage debug tokens" altına ekle
+/// Sağlayıcılar:
+///   • Debug derlemesi → Debug provider. Cihaz başına yerel bir "debug
+///     secret" üretir ve logcat'e basar. Bu değer Konsol'da
+///     App Check → uygulama → "Manage debug tokens" altına eklenmelidir,
+///     yoksa geliştirme cihazı doğrulanamaz.
+///   • Yayın derlemesi → Play Integrity (Android) / App Attest (iOS).
 ///
-/// Zorlamayı (enforcement) en sona bırak: önce Konsol'daki metriklerde
-/// isteklerin "doğrulanmış" göründüğünü teyit et, sonra aç. Sırayı bozarsan
-/// yayındaki uygulama Firestore ve Storage'a erişemez hâle gelir.
-const bool _appCheckAcik = false;
+/// ZORLAMA (enforcement) AYRI BİR ADIMDIR ve en sona bırakılmalıdır.
+/// Buradaki bayrak yalnızca token ÜRETİMİNİ açar; istekler zorlama
+/// açılana kadar reddedilmez. Sıra:
+///   1. Cloud Console → "Firebase App Check API" → Etkinleştir
+///   2. Firebase Console → App Check → Android'i Play Integrity ile kaydet
+///   3. Logcat'teki debug token'ı Konsol'a ekle
+///   4. Metriklerde isteklerin "doğrulanmış" göründüğünü TEYİT ET
+///   5. Ancak o zaman Firestore ve Storage için zorlamayı aç
+///
+/// Sırayı bozup zorlamayı erken açarsan yayındaki uygulama veritabanına
+/// erişemez hâle gelir. Ayrıca Play App Signing kullanılıyorsa Play
+/// Console'daki SHA-256 de Firebase'e eklenmiş olmalıdır; yoksa mağazadan
+/// inen sürüm doğrulanamaz.
+const bool _appCheckAcik = true;
 
 /// Firebase App Check'i devreye alır.
 ///
 /// Başlatma hatası uygulamayı açılışta kilitlememelidir; yutulur, log'lanır.
+/// API henüz etkinleştirilmemişse SDK yer tutucu token'la devam eder ve
+/// istekler normal şekilde gider — bu bir arıza değildir.
 Future<void> _appCheckBaslat() async {
   if (!_appCheckAcik) return;
 
@@ -50,6 +61,18 @@ Future<void> _appCheckBaslat() async {
           kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
       appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
     );
+
+    // Debug derlemesinde token'ı hemen istiyoruz: Debug provider'ın
+    // "debug secret" satırını logcat'e basması bu çağrıyla tetikleniyor.
+    // Aksi hâlde token ilk Firestore isteğine kadar görünmüyor ve
+    // Konsol'a eklenecek değeri bulmak zorlaşıyor.
+    if (kDebugMode) {
+      try {
+        await FirebaseAppCheck.instance.getToken();
+      } catch (e) {
+        debugPrint('App Check debug token alınamadı: $e');
+      }
+    }
   } catch (e) {
     debugPrint('App Check başlatılamadı: $e');
   }
