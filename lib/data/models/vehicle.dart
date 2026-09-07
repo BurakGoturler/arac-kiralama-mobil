@@ -39,16 +39,24 @@ class Vehicle {
 
   String get transmissionShort =>
       transmission == 'Automatic' || transmission == 'Otomatik'
-          ? 'Auto'
-          : 'Manual';
+          ? 'Oto'
+          : 'Manuel';
 
+  /// Yakıt tipine göre simge.
+  ///
+  /// Türkçe karşılıklar da tanınır: veriler artık 'Dizel' / 'Benzin' olarak
+  /// giriliyor ve yalnızca İngilizce karşılaştırma yapıldığında tüm araçlar
+  /// varsayılan benzin simgesine düşüyordu.
   String get fuelIcon {
     switch (fuelType) {
       case 'Electric':
+      case 'Elektrik':
         return '⚡';
       case 'Hybrid':
+      case 'Hibrit':
         return '🌿';
       case 'Diesel':
+      case 'Dizel':
         return '🛢️';
       default:
         return '⛽';

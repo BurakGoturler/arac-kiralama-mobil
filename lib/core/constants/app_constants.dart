@@ -9,9 +9,17 @@ class AppConstants {
   // gidiyordu. Müşteri, hangi düğmeye bastığına göre farklı hatta düşüyordu.
   // Numaralar burada birleştirildi.
   //
-  // TODO(yayın): Yayına çıkmadan önce işletmenin kullanacağı TEK numara
-  // teyit edilip buraya yazılmalı. Ülke kodu ile, '+' ve boşluk olmadan.
-  static const String whatsappPhone = '905303739446';
+  // Değer, sahibinden.com'daki 19 kiralama ilanının tamamında yazan
+  // "WHATSAPP BİLGİ İLETİŞİM: 0532 385 34 02" numarasıdır; aynı numara
+  // ilan sahibi kartındaki cep telefonu olarak da görünüyor.
+  //
+  // Koddaki eski iki numaranın (905357605676 ve 905303739446) HİÇBİRİ bu
+  // değildi; yani müşteriler yayındaki ilanlarda duyurulan hattan farklı
+  // numaralara yönlendiriliyordu.
+  //
+  // TODO(yayın): İşletme farklı bir hat kullanacaksa yayından önce burayı
+  // değiştirin. Ülke kodu ile, '+' ve boşluk olmadan yazılır.
+  static const String whatsappPhone = '905323853402';
 
   // ── Dimensions ────────────────────────────────────────────
   static const double paddingXS = 4.0;
@@ -65,13 +73,19 @@ class AppConstants {
 
 
   // ── Vehicle Categories ────────────────────────────────────
+  /// Araç kategorileri. İlk eleman ('Hepsi') yalnızca filtre içindir;
+  /// yönetim formundaki açılır listede gösterilmez.
+  ///
+  /// 'Hatchback' filoda gerçekten bu gövde tipinde araçlar bulunduğu için
+  /// eklendi (Clio, Scala, Corsa). Eskiden listede yoktu ve bu araçlar
+  /// zorunlu olarak yanlış bir kategoriye yazılmak durumunda kalıyordu.
   static const List<String> categories = [
     'Hepsi',
     'SUV',
     'Sedan',
+    'Hatchback',
     'Luxury',
-    // 'Electric',
     'Van',
-    'Sports'
+    'Sports',
   ];
 }
