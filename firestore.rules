@@ -112,17 +112,34 @@ service cloud.firestore {
       allow write: if yonetici();
     }
 
-    // ── whatsapp_logs ────────────────────────────────────────────
+    // ── whatsapp_logs — rezervasyon talep kayıtları ──────────────
     // ÖNEMLİ: Denetim öncesinde bu koleksiyona kimlik doğrulaması
     // olmadan kayıt eklenebiliyordu. Aşağıdaki kurallar bunu kapatır.
+    //
+    // 12.09.2026 — Koleksiyon adı tarihsel; artık YALNIZCA WhatsApp
+    // taleplerini değil, uygulama içinden gönderilen talepleri de tutuyor.
+    // Ayrımı 'kanal' alanı yapar: 'uygulama' | 'whatsapp'.
+    // Ad değişmedi çünkü canlı veriyi taşımak yayın öncesinde gereksiz risk;
+    // dışarıya görünen bir ad da değil.
     match /whatsapp_logs/{id} {
 
       // Yalnızca yönetici okuyabilir; kullanıcı kendi kayıtlarını görebilir.
       allow read: if yonetici()
                   || (girisYapmis() && resource.data.userId == request.auth.uid);
 
-      // Oluşturma: e-postası doğrulanmış kullanıcı, YALNIZCA kendi adına
-      // ve YALNIZCA açık rıza vermişse.
+      // Oluşturma: e-postası doğrulanmış kullanıcı, YALNIZCA kendi adına.
+      //
+      // AÇIK RIZA ARTIK GENEL ŞART DEĞİL. Eskiden her talep için
+      // acikRizaVerildi == true aranıyordu; rezervasyonun tek kanalı
+      // WhatsApp olduğu için bu, hizmeti açık rıza şartına bağlıyordu
+      // (KVKK m.3/1-a özgür irade, m.4/2-a dürüstlük, m.4/2-ç ölçülülük;
+      // Kurul'un paket rıza / hizmet şartı yasağı). Banka uyum incelemesi
+      // bu nedenle rızayı "sakat ve geçersiz" saydı.
+      //
+      // Yeni kural: rıza YALNIZCA yurt dışına aktarımın fiilen gerçekleştiği
+      // WhatsApp kanalı için aranır. Uygulama içi gönderim rıza istemez.
+      // Böylece rızanın ispatı sunucu tarafında sürüyor, ama rıza artık
+      // hizmetin şartı değil.
       //
       // T.C. Kimlik Numarası kaydedilmediği için 'customerTc' alanının
       // yazılması açıkça yasaklanır; ileride yanlışlıkla eklenmesi hâlinde
@@ -131,8 +148,12 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && !('customerTc' in request.resource.data)
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid))
-                         .data.acikRizaVerildi == true
+                    && request.resource.data.kanal in ['uygulama', 'whatsapp']
+                    && (
+                      request.resource.data.kanal == 'uygulama' ||
+                      get(/databases/$(database)/documents/users/$(request.auth.uid))
+                        .data.acikRizaVerildi == true
+                    )
                     && request.resource.data.vehicleName is string
                     && request.resource.data.vehicleName.size() <= 120
                     && request.resource.data.customerName.size() <= 60

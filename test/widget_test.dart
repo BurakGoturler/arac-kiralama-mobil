@@ -215,11 +215,66 @@ void main() {
       );
     });
 
+    // Firebase yurt dışı aktarımı, banka uyum incelemesinin en ağır
+    // bulgusuydu (KVKK m.9). Kurul hiçbir ülke için yeterlilik kararı
+    // ilan etmedi; verinin Belçika'da olması dayanak değildir. Firebase
+    // sürekli hizmet olduğu için "arızi aktarım" istisnasına da girmez,
+    // yani açık rıza da bir yol değildir. Geriye tek yol uygun güvence
+    // (standart sözleşme / Kurul onaylı taahhütname) kalıyor.
+    //
+    // Bu test bilerek kırmızıdır: güvence kurulup tarihi yazılmadan
+    // yayına çıkılırsa aydınlatma metni, hukuki dayanağı olmayan bir
+    // aktarımı beyan etmiş olur.
+    test('Firebase yurt dışı aktarımının hukuki dayanağı yazılmış olmalı', () {
+      expect(
+        SirketBilgileri.firebaseAktarimDayanagi.contains('['),
+        isFalse,
+        reason: 'Google Firebase için KVKK m.9 güvencesi henüz kurulmadı. '
+            'Güvence seçilip (Kurul standart sözleşmesi ya da Kurul onaylı '
+            'taahhütname) imzalandıktan ve 5 iş günü içinde Kurum\'a '
+            'bildirildikten sonra SirketBilgileri.firebaseAktarimDayanagi '
+            'alanına dayanağın adı ve tarihi yazılmalıdır.',
+      );
+    });
+
     test('yasal metinler boş değil', () {
       expect(LegalTexts.aydinlatmaMetni.trim().length, greaterThan(500));
       expect(LegalTexts.acikRizaMetni.trim().length, greaterThan(200));
       expect(LegalTexts.gizlilikMetni.trim().length, greaterThan(300));
       expect(LegalTexts.kullanimKosullariMetni.trim().length, greaterThan(500));
+    });
+
+    // Bankanın "hizmet şartına bağlanmış açık rıza" bulgusunun kod
+    // tarafındaki karşılığı: metinler, WhatsApp'sız bir yolun VARLIĞINI
+    // açıkça söylemek zorunda. Metin bu cümleyi kaybederse rıza yeniden
+    // sakatlanır.
+    test('açık rıza metni WhatsApp\'sız alternatifi duyurmalı', () {
+      expect(LegalTexts.acikRizaMetni, contains('ZORUNLU DEĞİLDİR'));
+      expect(LegalTexts.acikRizaMetni, contains('uygulama içinden'));
+      expect(LegalTexts.aydinlatmaMetni, contains('ZORUNDA DEĞİLSİNİZ'));
+    });
+
+    // Bankanın usul hataları: toplama yöntemi (m.10/1-ç), amaç-hukuki
+    // sebep eşleştirmesi (Tebliğ m.5/1-h), fiziki başvuru kanalı
+    // (Başvuru Tebliği m.5) ve periyodik imha (İmha Yönetmeliği m.11).
+    test('aydınlatma metni zorunlu usul başlıklarını içermeli', () {
+      const metin = 'aydinlatmaMetni';
+      final t = LegalTexts.aydinlatmaMetni;
+      expect(t, contains('KİŞİSEL VERİLERİN TOPLANMA YÖNTEMİ'),
+          reason: '$metin: KVKK m.10/1-ç toplama yöntemi bölümü eksik');
+      expect(t, contains('HER AMACIN HUKUKİ SEBEBİ'),
+          reason: '$metin: Tebliğ m.5/1-h amaç-hukuki sebep eşleştirmesi eksik');
+      expect(t, contains('noter'),
+          reason: '$metin: fiziki/yazılı başvuru kanalı sayılmamış');
+      expect(t, contains('6 AYLIK PERİYOTLARLA'),
+          reason: '$metin: periyodik imha süresi belirtilmemiş');
+    });
+
+    // KVKK m.11'de böyle bir hak yok; GDPR m.18'den sızmıştı.
+    // Kanunda karşılığı olmayan bir hakkı taahhüt etmek, yerine
+    // getirilemeyecek bir yükümlülük doğurur.
+    test('kanunda olmayan "işlemenin sınırlandırılması" hakkı bulunmamalı', () {
+      expect(LegalTexts.aydinlatmaMetni, isNot(contains('sınırlandırılmasını')));
     });
   });
 }

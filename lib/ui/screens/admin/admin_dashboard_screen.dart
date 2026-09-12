@@ -1176,6 +1176,16 @@ class _StatsTabState extends State<_StatsTab>
                   dateStr = DateFormat('dd.MM.yyyy HH:mm', 'tr_TR')
                       .format(ts.toDate());
                 }
+                // Kanal ayrımı operasyon açısından kritiktir: 'uygulama'
+                // ile gelen talepte WhatsApp'a HİÇBİR MESAJ DÜŞMEZ, müşteri
+                // geri aranmayı bekler. Rozet olmazsa bu talepler sessizce
+                // gözden kaçar. Eski kayıtlarda alan yok; onlar WhatsApp'tır.
+                final kanal = log['kanal'] as String? ?? 'whatsapp';
+                final uygulamaKanali = kanal == 'uygulama';
+                final kanalRengi = uygulamaKanali
+                    ? AppColors.primary
+                    : const Color(0xFF25D366);
+
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   shape: RoundedRectangleBorder(
@@ -1183,16 +1193,44 @@ class _StatsTabState extends State<_StatsTab>
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      child: const Icon(Icons.person, color: AppColors.primary),
+                      backgroundColor: kanalRengi.withValues(alpha: 0.1),
+                      child: Icon(
+                        uygulamaKanali
+                            ? Icons.phone_in_talk_outlined
+                            : Icons.chat_outlined,
+                        color: kanalRengi,
+                      ),
                     ),
-                    title: Text(
-                      '${log['customerName'] ?? ''} ${log['customerSurname'] ?? ''}',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(fontWeight: FontWeight.w600),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${log['customerName'] ?? ''} ${log['customerSurname'] ?? ''}',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: kanalRengi.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            uygulamaKanali ? 'ARANACAK' : 'WhatsApp',
+                            style: AppTextStyles.caption.copyWith(
+                              color: kanalRengi,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     subtitle: Text(
-                      '${log['vehicleName'] ?? ''} • ${log['phoneLabel'] ?? ''}\n$dateStr',
+                      '${log['vehicleName'] ?? ''} • ${log['phoneLabel'] ?? ''}\n'
+                      '${log['customerPhone'] ?? ''} • $dateStr',
                       style: AppTextStyles.caption,
                     ),
                     isThreeLine: true,

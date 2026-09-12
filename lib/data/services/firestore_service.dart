@@ -147,11 +147,22 @@ class FirestoreService {
   // WHATSAPP LOG
   // ═══════════════════════════════════════════════════════
 
-  /// Yeni WhatsApp log kaydı ekle.
+  /// Yeni rezervasyon talep kaydı ekle.
   ///
-  /// DİKKAT: T.C. Kimlik Numarası bilinçli olarak KAYDEDİLMEZ. Kullanıcıdan
-  /// rezervasyon anında alınır, yalnızca WhatsApp mesajına eklenir ve
-  /// hiçbir yere yazılmaz (KVKK — veri minimizasyonu).
+  /// [kanal] talebin hangi yoldan geldiğini söyler ve hukuken belirleyicidir:
+  ///
+  ///   'uygulama' → Talep doğrudan Şirket sistemlerine yazılır. Yurt dışına
+  ///                aktarım yoktur, bu yüzden AÇIK RIZA ARANMAZ.
+  ///   'whatsapp' → Kayıt yazıldıktan sonra kullanıcı WhatsApp'a yönlendirilir.
+  ///                Yurt dışına aktarım gerçekleşir; açık rıza şarttır ve
+  ///                firestore.rules bunu sunucu tarafında da doğrular.
+  ///
+  /// Bu ayrım, bankanın uyum incelemesindeki "rezervasyonun tek kanal olarak
+  /// WhatsApp'a bağlanması açık rızayı sakatlar" bulgusunun karşılığıdır.
+  ///
+  /// DİKKAT: T.C. Kimlik Numarası bilinçli olarak KAYDEDİLMEZ. İsteğe bağlı
+  /// olarak yalnızca WhatsApp mesajına eklenir, hiçbir yere yazılmaz
+  /// (KVKK m.4/2-ç — veri minimizasyonu).
   Future<void> addWhatsAppLog({
     required String customerName,
     required String customerSurname,
@@ -163,7 +174,9 @@ class FirestoreService {
     required String phoneLabel,
     required String pickupLocation,
     required String userId,
+    required String kanal,
   }) async {
+    assert(kanal == 'uygulama' || kanal == 'whatsapp');
     await _db.collection('whatsapp_logs').add({
       'customerName': customerName,
       'customerSurname': customerSurname,
@@ -175,6 +188,7 @@ class FirestoreService {
       'phoneLabel': phoneLabel,
       'pickupLocation': pickupLocation,
       'userId': userId,
+      'kanal': kanal,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
