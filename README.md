@@ -1,16 +1,35 @@
-# car_rental_mvp
+# Premium Car Rental — Mobil Uygulama
 
-Premium Car Rental – frictionless WhatsApp-based reservations.
+> **Durum:** MVP · **Tür:** Kişisel proje · **Teknoloji:** Flutter (Dart)
 
-## Getting Started
+Araç kiralama için mobil uygulama denemesi. Kullanıcı araçları inceliyor ve
+rezervasyonunu **WhatsApp üzerinden** tamamlıyor — böylece ödeme altyapısı ve
+üyelik sistemi kurmadan çalışan bir akış elde ediliyor.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## Neden WhatsApp
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Küçük filolarda rezervasyonlar zaten telefon ve mesajla ilerliyor. Uygulama
+araç seçimini ve tarih bilgisini hazırlayıp hazır bir mesaj olarak WhatsApp'a
+aktarıyor; işletme tarafında yeni bir panel öğrenme yükü doğmuyor.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## Kurulum
+
+Gereken: [Flutter SDK](https://docs.flutter.dev/get-started/install)
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Yapı
+
+| Yol | İş |
+| --- | --- |
+| `lib/` | Uygulama kodu |
+| `assets/` | Görseller ve statik dosyalar |
+| `android/` · `ios/` | Platform projeleri |
+| `firebase.json` | Firebase yapılandırması |
