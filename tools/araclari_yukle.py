@@ -41,11 +41,12 @@ import sys
 import urllib.error
 import urllib.request
 
-PROJE = "senbayrak-arac-kiralama"
-# Firebase yapılandırmasındaki genel web anahtarı. Bu bir SIR DEĞİLDİR;
-# projeyi tanımlar, tek başına hiçbir veriye erişim vermez. Erişim
-# güvenliği güvenlik kurallarıyla sağlanır.
-API_ANAHTARI = "AIzaSyDKwxYfwwWWXiyks3NDanCcpB3i3u2sO74"
+from firebase_ayar import proje_ayari
+
+# Proje ve genel web anahtarı uygulamanın yapılandırmasından okunur.
+# Anahtar bir SIR DEĞİLDİR; projeyi tanımlar, tek başına hiçbir veriye
+# erişim vermez. Erişim güvenliği güvenlik kurallarıyla sağlanır.
+PROJE, API_ANAHTARI = proje_ayari()
 
 GIRIS_URL = (
     "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"

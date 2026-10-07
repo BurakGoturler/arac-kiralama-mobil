@@ -1,0 +1,53 @@
+{
+  "_aciklama": [
+    "Yeni Firebase projesine yazılacak kampanyalar (Kış 2026-2027).",
+    "projeye_tasi.py bu dosyayı okur; eski projedeki kampanyalar TAŞINMAZ.",
+    "",
+    "Alanlar:",
+    "  title            — kartta TEK SATIR gösterilir; ~24 karakteri geçerse '…' ile kesilir.",
+    "  description      — kartta 3 satır, 'Hepsini Gör' ekranında tamamı.",
+    "  whatsappMessage  — MÜŞTERİNİN şirkete göndereceği hazır mesajdır, müşterinin",
+    "                     ağzından yazılır. Eskiden iki kampanyada kampanya metninin",
+    "                     kendisi yazılıydı; müşteri şirkete şirketin reklamını yolluyordu.",
+    "  order            — küçük olan önce.",
+    "",
+    "Eski projeden bilerek alınmayanlar: 'Nisan Ayına Özel Fırsat' (pasifti) ve",
+    "'Lüks Araçlarda Hafta Sonu %25' (Mart'tan kalma, gerçekliği teyit edilmedi).",
+    "",
+    "ONAY BEKLEYEN: 'Kışa Özel Aylık Kiralama' metni şirket teyidi olmadan",
+    "isActive=false bırakıldı. Teyitten sonra true yapılır."
+  ],
+
+  "kampanyalar": [
+    {
+      "kimlik": "akaryakit-indirim",
+      "title": "Akaryakıtta Ek İndirim",
+      "description": "2500 TL ve üzeri motorin ve benzin alımlarınızda Şenbayrak Alper Petrol'de size özel fiyatlar sizi bekliyor.",
+      "buttonText": "Bize Ulaşın",
+      "whatsappMessage": "Merhaba, akaryakıt indirim kampanyanız hakkında bilgi almak istiyorum.",
+      "gradientColors": [4281236786, 4284922730],
+      "isActive": true,
+      "order": 0
+    },
+    {
+      "kimlik": "arkadasini-getir",
+      "title": "Arkadaşını Getir",
+      "description": "Şenbayrak'a arkadaşını getiren müşterilerimize akaryakıt hediyesi:\n\n✅ Aylık araç kiralama: 1.000 TL\n✅ Yıllık araç kiralama: 2.500 TL\n✅ Araç alımı: 2.500 TL\n✅ Kiralayarak satın al: 2.500 TL\n\nHemen bize ulaşın, fırsatı kaçırmayın!",
+      "buttonText": "Bize Ulaşın",
+      "whatsappMessage": "Merhaba, Arkadaşını Getir kampanyanız hakkında bilgi almak istiyorum.",
+      "gradientColors": [4279592384, 4280191205],
+      "isActive": true,
+      "order": 1
+    },
+    {
+      "kimlik": "kis-aylik-kiralama",
+      "title": "Kışa Özel Aylık Kiralama",
+      "description": "Kış boyunca aylık ve uzun süreli kiralamalarda size özel fiyat teklifi için bize ulaşın.",
+      "buttonText": "Bize Ulaşın",
+      "whatsappMessage": "Merhaba, kış dönemi aylık kiralama fiyatlarınız hakkında bilgi almak istiyorum.",
+      "gradientColors": [4279060385, 4283417591],
+      "isActive": false,
+      "order": 2
+    }
+  ]
+}
