@@ -33,7 +33,8 @@ class AuthService {
   /// Yeni kullanıcı kaydı (Firebase Auth + Firestore users koleksiyonu)
   ///
   /// [sozlesmeOnayi] aydınlatma metni ve kullanım koşulları onayıdır, zorunludur.
-  /// [acikRizaVerildi] WhatsApp aktarımı için açık rızadır, isteğe bağlıdır.
+  /// [kampanyaOnayi] kampanya iletişimi açık rızası ve ticari elektronik ileti
+  /// onayıdır; isteğe bağlıdır ve hiçbir işlevin şartı değildir.
   Future<UserCredential> register({
     required String email,
     required String password,
@@ -41,12 +42,13 @@ class AuthService {
     required String surname,
     required String phone,
     required bool sozlesmeOnayi,
-    required bool acikRizaVerildi,
+    required bool aydinlatmaOkundu,
+    required bool kampanyaOnayi,
   }) async {
     // Aydınlatma onayı olmadan kayıt açılamaz. Güvenlik kuralı bunu zaten
     // reddeder; burada da kontrol edilir ki gereksiz bir Auth hesabı
     // oluşturulup hemen silinmek zorunda kalınmasın.
-    if (!sozlesmeOnayi) {
+    if (!sozlesmeOnayi || !aydinlatmaOkundu) {
       throw Exception('sozlesme-onayi-gerekli');
     }
 
@@ -73,8 +75,10 @@ class AuthService {
         phone: phone.trim(),
         role: 'customer',
         sozlesmeOnayi: sozlesmeOnayi,
-        acikRizaVerildi: acikRizaVerildi,
+        aydinlatmaOkundu: aydinlatmaOkundu,
         onayMetinSurumu: SirketBilgileri.sonGuncelleme,
+        kampanyaOnayi: kampanyaOnayi,
+        kampanyaMetinSurumu: SirketBilgileri.sonGuncelleme,
       );
       await _db
           .collection('users')
@@ -191,10 +195,25 @@ class AuthService {
       }
     }
 
-    // 2. Profil dokümanı
+    // 2. İmha kaydı (İmha Yönetmeliği m.7/3 — her imha kayıt altına alınır).
+    //
+    // Kayıt KİŞİSEL VERİ İÇERMEZ: kullanıcı kimliği, e-posta veya ad
+    // yazılmaz; yalnızca işlemin türü, tarihi ve silinen talep sayısı.
+    // Aksi hâlde silinen kişinin izi imha kaydında yaşamaya devam ederdi.
+    // Kayıt yazılamazsa silme DURDURULMAZ: silme hakkı, kaydın
+    // tutulmasından önce gelir.
+    try {
+      await _db.collection('imha_kayitlari').add({
+        'tur': 'hesap_silme',
+        'tarih': FieldValue.serverTimestamp(),
+        'silinenTalepSayisi': logs.docs.length,
+      });
+    } catch (_) {}
+
+    // 3. Profil dokümanı
     await _db.collection('users').doc(uid).delete();
 
-    // 3. Firebase Auth kaydı.
+    // 4. Firebase Auth kaydı.
     //
     // Bu adım başarısız olursa kullanıcı, profili silinmiş ama Auth kaydı
     // duran bir hesapla kalır: giriş yapabilir, profili okunamaz, uygulamayı

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:car_rental_mvp/core/constants/app_constants.dart';
+import 'package:car_rental_mvp/core/constants/kvkk_envanter.dart';
 import 'package:car_rental_mvp/core/constants/legal_texts.dart';
 import 'package:car_rental_mvp/core/utils/helpers.dart';
 
@@ -33,6 +35,37 @@ void main() {
 
     test('baştaki ve sondaki boşlukları yok sayar', () {
       expect(AppHelpers.isValidTcNo('  10000000146  '), isTrue);
+    });
+  });
+
+  group('WhatsApp rezervasyon mesajı', () {
+    String mesaj(String tc) => AppConstants.whatsappMessageWithCustomer(
+          vehicleName: 'Renault Clio',
+          startDate: '1 Eki 2026',
+          endDate: '3 Eki 2026',
+          customerName: 'Ayşe',
+          customerSurname: 'Yılmaz',
+          customerTc: tc,
+          customerPhone: '05321234567',
+          pickupLocation: 'Merkez Şube',
+        );
+
+    // Aydınlatma metni: "bu alanı doldurursanız mesaja eklenir".
+    test('T.C. Kimlik No boşsa mesajda hiç geçmez', () {
+      expect(mesaj(''), isNot(contains('TC No')));
+      expect(mesaj('   '), isNot(contains('TC No')));
+    });
+
+    test('T.C. Kimlik No yazıldıysa mesaja eklenir', () {
+      expect(mesaj('10000000146'), contains('TC No: 10000000146\n'));
+    });
+
+    test('talep bilgilerini eksiksiz taşır', () {
+      final m = mesaj('');
+      for (final parca in ['Ayşe Yılmaz', '05321234567', 'Renault Clio',
+          '1 Eki 2026 - 3 Eki 2026', 'Merkez Şube']) {
+        expect(m, contains(parca));
+      }
     });
   });
 
@@ -202,79 +235,186 @@ void main() {
   });
 
   group('KVKK yayın öncesi kontrolü', () {
-    // Bu test, şirket bilgileri doldurulmadan yayına çıkılmasını engeller.
-    // Yer tutucular tamamlandığında kendiliğinden geçer.
+    // Tüm metinler — uygulama ekranlarındaki kısa bilgilendirmeler dâhil.
+    List<String> tumMetinler() => [
+          LegalTexts.aydinlatmaMetni,
+          LegalTexts.gizlilikMetni,
+          LegalTexts.kullanimKosullariMetni,
+          LegalTexts.saklamaImhaPolitikasiMetni,
+          LegalTexts.acikRizaMetni,
+          ...LegalTexts.ekranMetinleri,
+        ];
+
+    // Şirket bilgileri doldurulmadan yayına çıkılmasını engeller. İki m.9
+    // dayanağı ayrı testlerde, kendi gerekçeleriyle denetlenir.
     test('yasal metinlerdeki şirket bilgileri doldurulmuş olmalı', () {
-      expect(
-        SirketBilgileri.eksikBilgiVar,
-        isFalse,
-        reason: 'lib/core/constants/legal_texts.dart içindeki köşeli '
-            'parantezli yer tutucular yayından önce doldurulmalıdır. '
-            'Aksi hâlde kullanıcılar "[ŞİRKET TİCARET UNVANI]" gibi '
-            'ifadeler görür ve metinler KVKK açısından geçersiz olur.',
-      );
+      final eksik = SirketBilgileri.doldurulmamisAlanlar
+          .where((a) => !a.endsWith('AktarimDayanagi'))
+          .toList();
+      expect(eksik, isEmpty,
+          reason: 'lib/core/constants/legal_texts.dart içindeki köşeli '
+              'parantezli yer tutucular yayından önce doldurulmalıdır: $eksik');
     });
 
-    // Firebase yurt dışı aktarımı, banka uyum incelemesinin en ağır
-    // bulgusuydu (KVKK m.9). Kurul hiçbir ülke için yeterlilik kararı
-    // ilan etmedi; verinin Belçika'da olması dayanak değildir. Firebase
-    // sürekli hizmet olduğu için "arızi aktarım" istisnasına da girmez,
-    // yani açık rıza da bir yol değildir. Geriye tek yol uygun güvence
-    // (standart sözleşme / Kurul onaylı taahhütname) kalıyor.
-    //
-    // Bu test bilerek kırmızıdır: güvence kurulup tarihi yazılmadan
-    // yayına çıkılırsa aydınlatma metni, hukuki dayanağı olmayan bir
-    // aktarımı beyan etmiş olur.
+    // Avukat analizinin en ağır bulgusu (KVKK m.9). Kurul hiçbir ülke
+    // için yeterlilik kararı ilan etmedi; Firebase sürekli hizmet olduğu
+    // için açık rıza da bir yol değil. Bilerek kırmızıdır.
     test('Firebase yurt dışı aktarımının hukuki dayanağı yazılmış olmalı', () {
-      expect(
-        SirketBilgileri.firebaseAktarimDayanagi.contains('['),
-        isFalse,
-        reason: 'Google Firebase için KVKK m.9 güvencesi henüz kurulmadı. '
-            'Güvence seçilip (Kurul standart sözleşmesi ya da Kurul onaylı '
-            'taahhütname) imzalandıktan ve 5 iş günü içinde Kurum\'a '
-            'bildirildikten sonra SirketBilgileri.firebaseAktarimDayanagi '
-            'alanına dayanağın adı ve tarihi yazılmalıdır.',
-      );
+      expect(SirketBilgileri.firebaseAktarimDayanagi.contains('['), isFalse,
+          reason: 'Google Firebase için KVKK m.9 güvencesi henüz kurulmadı. '
+              'Güvence imzalanıp 5 iş günü içinde Kurum\'a bildirildikten '
+              'sonra SirketBilgileri.firebaseAktarimDayanagi alanına '
+              'dayanağın adı ve tarihi yazılmalıdır.');
+    });
+
+    // 14.09.2026 — Kiralama yalnızca WhatsApp'tan yürüyor; bu aktarım rızaya
+    // dayanamaz, standart sözleşmeye dayanır. Bildirim yapılmadan yayına
+    // çıkılırsa metinler dayanağı olmayan bir aktarımı beyan eder. Bilerek
+    // kırmızıdır.
+    test('WhatsApp Business aktarımının hukuki dayanağı yazılmış olmalı', () {
+      expect(SirketBilgileri.whatsappAktarimDayanagi.contains('['), isFalse,
+          reason: 'WhatsApp hattının WhatsApp Business hesabı olduğu teyit '
+              'edilip standart sözleşme (Veri Sorumlusundan Veri İşleyene) '
+              'Kurum\'a bildirildikten sonra '
+              'SirketBilgileri.whatsappAktarimDayanagi alanı doldurulmalıdır.');
     });
 
     test('yasal metinler boş değil', () {
       expect(LegalTexts.aydinlatmaMetni.trim().length, greaterThan(500));
-      expect(LegalTexts.acikRizaMetni.trim().length, greaterThan(200));
       expect(LegalTexts.gizlilikMetni.trim().length, greaterThan(300));
       expect(LegalTexts.kullanimKosullariMetni.trim().length, greaterThan(500));
+      expect(LegalTexts.saklamaImhaPolitikasiMetni.trim().length,
+          greaterThan(1000));
+      expect(LegalTexts.acikRizaMetni.trim().length, greaterThan(800));
     });
 
-    // Bankanın "hizmet şartına bağlanmış açık rıza" bulgusunun kod
-    // tarafındaki karşılığı: metinler, WhatsApp'sız bir yolun VARLIĞINI
-    // açıkça söylemek zorunda. Metin bu cümleyi kaybederse rıza yeniden
-    // sakatlanır.
-    test('açık rıza metni WhatsApp\'sız alternatifi duyurmalı', () {
+    // Şirket kararı: WhatsApp zorunlu kanal. Tek kanal rızaya bağlanırsa rıza
+    // "hizmet şartı" olur ve geçersizdir (avukat analizi 02). Açık rıza
+    // YALNIZCA isteğe bağlı kampanya iletişiminde kullanılır; üyelik,
+    // rezervasyon ve kiralama hiçbir koşulda rızaya bağlanmamalı ve eski
+    // "rıza vermezseniz rezervasyon gönderemezsiniz" kurgusu geri gelmemeli.
+    test('açık rıza yalnızca isteğe bağlı kampanya iletişimine dayanmalı', () {
+      final rizali = KvkkEnvanter.faaliyetler
+          .where((f) => f.hukukiSebep.toLowerCase().contains('rıza'))
+          .map((f) => f.surec)
+          .toList();
+      expect(rizali, ['Kampanya iletişimi']);
+      for (final f in KvkkEnvanter.faaliyetler) {
+        expect(f.acikRizayaDayali,
+            f.hukukiSebep.toLowerCase().contains('rıza'),
+            reason: f.surec);
+      }
+      expect(LegalTexts.aydinlatmaMetni, contains('AÇIK RIZAYA DAYANMAZ'));
       expect(LegalTexts.acikRizaMetni, contains('ZORUNLU DEĞİLDİR'));
-      expect(LegalTexts.acikRizaMetni, contains('uygulama içinden'));
-      expect(LegalTexts.aydinlatmaMetni, contains('ZORUNDA DEĞİLSİNİZ'));
+      expect(LegalTexts.acikRizaMetni,
+          contains('WhatsApp hattımız üzerinden araç kiralayabilirsiniz'));
+      for (final m in tumMetinler()) {
+        expect(m, isNot(contains('gönderemezsiniz')));
+      }
     });
 
-    // Bankanın usul hataları: toplama yöntemi (m.10/1-ç), amaç-hukuki
+    // 6563 sayılı Kanun ve KVKK m.3/1-a: onay isteğe bağlı olmalı, geri alma
+    // yolları ve İYS açıkça yazmalı; ekran metinleri de aynı şeyi söylemeli.
+    // Kurul 18.02.2026 tarihli ve 2026/347 sayılı ilke kararı: aydınlatma
+    // için onay/rıza istenmez, yalnızca okunduğu bildirilir; açık rıza metni
+    // aydınlatmadan ayrı başlıkta ve ayrı beyanla düzenlenir.
+    test('aydınlatma için onay istenmemeli, açık rıza ayrı beyan olmalı', () {
+      expect(LegalTexts.acikRizaMetni,
+          isNot(contains("Aydınlatma Metni'ni okuduğumu")));
+      for (final m in tumMetinler()) {
+        expect(m, isNot(contains('Aydınlatma Metni ve Kullanım Koşulları onay')));
+        expect(m, isNot(contains("Aydınlatma Metni'ni onaylıyorum")));
+      }
+      expect(LegalTexts.acikRizaBaslik, isNot(LegalTexts.aydinlatmaBaslik));
+    });
+
+    test('kampanya onayı isteğe bağlı ve geri alınabilir anlatılmalı', () {
+      expect(LegalTexts.kampanyaOnayAciklama, contains('İsteğe bağlıdır'));
+      expect(LegalTexts.kampanyaProfilKapali, contains('etkilenmez'));
+      for (final m in [
+        LegalTexts.aydinlatmaMetni,
+        LegalTexts.acikRizaMetni,
+        LegalTexts.gizlilikMetni,
+      ]) {
+        expect(m, contains('İYS'));
+        expect(m, contains('Profilim'));
+        expect(m, contains('3 iş günü'));
+      }
+    });
+
+    test('rezervasyonun yalnızca WhatsApp\'tan alındığı açıkça yazmalı', () {
+      expect(LegalTexts.kullanimKosullariMetni,
+          contains('YALNIZCA ${SirketBilgileri.whatsappHatti}'));
+      expect(LegalTexts.gizlilikMetni, contains('YALNIZCA WhatsApp'));
+      expect(LegalTexts.aydinlatmaMetni, contains('YALNIZCA Şirket\'in'));
+      expect(LegalTexts.rezervasyonKanalBilgisi, contains('yalnızca WhatsApp'));
+    });
+
+    // Şirket kararı (14.09.2026): şubede adli sicil kaydı istenmiyor ve
+    // hiçbir metinde geçmemeli.
+    test('adli sicil kaydı hiçbir metinde geçmemeli', () {
+      for (final m in tumMetinler()) {
+        for (final ifade in ['Adli sicil', 'adli sicil', 'ADLİ SİCİL',
+            'Adli Sicil', 'sabıka', 'Sabıka', 'ceza mahkûmiyeti']) {
+          expect(m, isNot(contains(ifade)));
+        }
+      }
+    });
+
+    // Avukat analizindeki usul hataları: toplama yöntemi (m.10/1-ç), amaç-hukuki
     // sebep eşleştirmesi (Tebliğ m.5/1-h), fiziki başvuru kanalı
     // (Başvuru Tebliği m.5) ve periyodik imha (İmha Yönetmeliği m.11).
     test('aydınlatma metni zorunlu usul başlıklarını içermeli', () {
-      const metin = 'aydinlatmaMetni';
       final t = LegalTexts.aydinlatmaMetni;
-      expect(t, contains('KİŞİSEL VERİLERİN TOPLANMA YÖNTEMİ'),
-          reason: '$metin: KVKK m.10/1-ç toplama yöntemi bölümü eksik');
-      expect(t, contains('HER AMACIN HUKUKİ SEBEBİ'),
-          reason: '$metin: Tebliğ m.5/1-h amaç-hukuki sebep eşleştirmesi eksik');
-      expect(t, contains('noter'),
-          reason: '$metin: fiziki/yazılı başvuru kanalı sayılmamış');
-      expect(t, contains('6 AYLIK PERİYOTLARLA'),
-          reason: '$metin: periyodik imha süresi belirtilmemiş');
+      expect(t, contains('KİŞİSEL VERİLERİN TOPLANMA YÖNTEMİ'));
+      expect(t, contains('HER AMACIN HUKUKİ SEBEBİ'));
+      expect(t, contains('noter'));
+      expect(t, contains('6 AYLIK PERİYOTLARLA'));
     });
 
-    // KVKK m.11'de böyle bir hak yok; GDPR m.18'den sızmıştı.
-    // Kanunda karşılığı olmayan bir hakkı taahhüt etmek, yerine
-    // getirilemeyecek bir yükümlülük doğurur.
     test('kanunda olmayan "işlemenin sınırlandırılması" hakkı bulunmamalı', () {
-      expect(LegalTexts.aydinlatmaMetni, isNot(contains('sınırlandırılmasını')));
+      for (final m in tumMetinler()) {
+        expect(m, isNot(contains('sınırlandırılmasını')));
+      }
+    });
+
+    // Avukat analizi bulgu 11: her faaliyetin hukuki sebebi ve saklama süresi
+    // tanımlı olmalı, ve aydınlatma metni envanterle birebir eşleşmeli.
+    test('her işleme faaliyetinin hukuki sebebi ve saklama süresi tanımlı', () {
+      for (final f in KvkkEnvanter.faaliyetler) {
+        expect(f.hukukiSebep, startsWith('KVKK m.'), reason: f.surec);
+        expect(SaklamaSureleri.bul(f.saklamaKategorisi), isNotNull,
+            reason: '${f.surec}: "${f.saklamaKategorisi}" saklama '
+                'kategorisi tanımlı değil');
+        expect(LegalTexts.aydinlatmaMetni, contains(f.amac), reason: f.surec);
+        expect(LegalTexts.aydinlatmaMetni, contains(f.hukukiSebep),
+            reason: f.surec);
+      }
+      for (final k in SaklamaSureleri.kategoriler) {
+        expect(LegalTexts.saklamaImhaPolitikasiMetni, contains(k.kategori));
+        expect(LegalTexts.saklamaImhaPolitikasiMetni, contains(k.sure));
+      }
+    });
+
+    // İmha kodu ile metindeki süre aynı sabitten gelmeli; biri değişip
+    // öbürü değişmezse metin gerçeği anlatmaz.
+    test('imha kodundaki süreler metinlerdeki sürelerle aynı', () {
+      expect(SaklamaSureleri.rezervasyonKaydiGun, 730);
+      expect(SaklamaSureleri.bul(SaklamaSureleri.rezervasyonKaydi)!.sure,
+          contains('2 yıl'));
+      expect(SaklamaSureleri.periyodikImhaAy, lessThanOrEqualTo(6));
+      expect(SaklamaSureleri.periyodikImhaGun,
+          SaklamaSureleri.periyodikImhaAy * 30);
+      expect(SaklamaSureleri.imhaKaydiYil, greaterThanOrEqualTo(3));
+    });
+
+    // Hesap silme açıklaması neyin silinmediğini de söylemeli; "tüm
+    // verileriniz silinir" demek WhatsApp yazışmaları ve şube belgeleri
+    // bakımından yanlış olurdu.
+    test('hesap silme metinleri silinmeyen verileri açıkça söylemeli', () {
+      expect(LegalTexts.hesapSilmeBilgisi, contains('WhatsApp yazışmalarınız'));
+      expect(LegalTexts.aydinlatmaMetni, contains('Hesabımı Sil'));
+      expect(LegalTexts.gizlilikMetni, contains('bu işlemle silinmez'));
     });
   });
 }

@@ -18,6 +18,7 @@ import 'package:car_rental_mvp/ui/screens/admin/admin_pickup_location_form_scree
 import 'package:car_rental_mvp/ui/screens/auth/login_screen.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/kvkk_envanter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/helpers.dart';
 
@@ -642,7 +643,8 @@ class _UsersTabState extends State<_UsersTab>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Toplam ${users.length} üye',
+                    'Toplam ${users.length} üye · '
+                    '${users.where((u) => u.kampanyaOnayi).length} kampanya onayı',
                     style: AppTextStyles.labelMedium
                         .copyWith(color: AppColors.primary),
                   ),
@@ -717,16 +719,18 @@ class _UsersTabState extends State<_UsersTab>
                             _UserInfoLine(icon: Icons.email_outlined, text: u.email),
                           if (u.phone.isNotEmpty)
                             _UserInfoLine(icon: Icons.phone_outlined, text: u.phone),
-                          // T.C. Kimlik No artık saklanmadığı için burada
+                          // T.C. Kimlik No saklanmadığı için burada
                           // gösterilecek bir veri de yok (KVKK — minimizasyon).
-                          _UserInfoLine(
-                            icon: u.acikRizaVerildi
-                                ? Icons.verified_user_outlined
-                                : Icons.privacy_tip_outlined,
-                            text: u.acikRizaVerildi
-                                ? 'Açık rıza verildi'
-                                : 'Açık rıza yok',
-                          ),
+                          // Kampanya onayı: İYS'ye yüklenmesi gereken
+                          // tek onay. Onay tarihi İYS kaydı için gerekir.
+                          if (u.kampanyaOnayi)
+                            _UserInfoLine(
+                              icon: Icons.campaign_outlined,
+                              text: u.kampanyaOnayTarihi == null
+                                  ? 'Kampanya onayı var'
+                                  : 'Kampanya onayı: '
+                                      '${DateFormat('dd.MM.yyyy', 'tr_TR').format(u.kampanyaOnayTarihi!)}',
+                            ),
                         ],
                       ),
                       isThreeLine: true,
@@ -799,6 +803,170 @@ class _UserInfoLine extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Periyodik imha kartı ──
+//
+// Avukat KVKK analizi, 11 numaralı bulgu: periyodik imha aralığı ve
+// kaydı yoktu. `deleteExpiredWhatsAppLogs` kodda duruyordu ama HİÇBİR
+// yerden çağrılmıyordu; yani "süresi dolan kayıtları imha eden fonksiyon
+// uygulanmıştır" beyanının arkasında basılabilecek bir düğme yoktu.
+//
+// Kart; son periyodik imhanın tarihini imha kayıtlarından okur, İmha
+// Yönetmeliği m.11'deki 6 aylık sınır aşılmışsa uyarır ve imhayı başlatır.
+// Her çalıştırma, silinecek kayıt olmasa da, imha kaydı üretir.
+class _PeriyodikImhaKarti extends StatefulWidget {
+  final FirestoreService firestoreService;
+
+  const _PeriyodikImhaKarti({required this.firestoreService});
+
+  @override
+  State<_PeriyodikImhaKarti> createState() => _PeriyodikImhaKartiState();
+}
+
+class _PeriyodikImhaKartiState extends State<_PeriyodikImhaKarti> {
+  late final Stream<DateTime?> _sonImha;
+  bool _calisiyor = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sonImha = widget.firestoreService.getSonPeriyodikImhaTarihiStream();
+  }
+
+  Future<void> _imhaEt() async {
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Periyodik imha'),
+        content: Text(
+          '${SaklamaSureleri.rezervasyonKaydiGun} günden (2 yıl) eski '
+          'rezervasyon talep kayıtları kalıcı olarak silinecek. İşlem geri '
+          'alınamaz ve imha kaydına yazılır.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('İmha Et', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (onay != true) return;
+
+    setState(() => _calisiyor = true);
+    try {
+      final adet = await widget.firestoreService.deleteExpiredWhatsAppLogs();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Periyodik imha tamamlandı: $adet kayıt silindi, imha kaydı '
+            'oluşturuldu.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('İmha tamamlanamadı: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _calisiyor = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DateTime?>(
+      stream: _sonImha,
+      builder: (context, snapshot) {
+        final yukleniyor =
+            snapshot.connectionState == ConnectionState.waiting;
+        final son = snapshot.data;
+        final gecenGun =
+            son == null ? null : DateTime.now().difference(son).inDays;
+        final gecikti = !yukleniyor &&
+            (gecenGun == null || gecenGun > SaklamaSureleri.periyodikImhaGun);
+
+        final String durum;
+        if (yukleniyor) {
+          durum = 'Son imha tarihi yükleniyor…';
+        } else if (snapshot.hasError) {
+          durum = 'İmha kayıtları okunamadı.';
+        } else if (son == null) {
+          durum = 'Henüz periyodik imha yapılmadı.';
+        } else {
+          durum = 'Son periyodik imha: '
+              '${DateFormat('dd.MM.yyyy', 'tr_TR').format(son)} '
+              '($gecenGun gün önce)';
+        }
+
+        return Card(
+          color: gecikti ? AppColors.error.withValues(alpha: 0.06) : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_delete_outlined,
+                        color: gecikti ? AppColors.error : AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text('Periyodik İmha', style: AppTextStyles.headingMedium),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(durum, style: AppTextStyles.bodyMedium),
+                if (gecikti) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'KVKK gereği en geç ${SaklamaSureleri.periyodikImhaAy} '
+                    'ayda bir yapılmalıdır.',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.error),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Text(
+                  'Saklama süresi dolan rezervasyon talep kayıtlarını siler. '
+                  'WhatsApp yazışmaları ve şube belgeleri aynı dönemde ayrıca '
+                  'imha edilip imha tutanağına yazılmalıdır.',
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _calisiyor ? null : _imhaEt,
+                    icon: _calisiyor
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete_sweep_outlined),
+                    label: Text(_calisiyor
+                        ? 'İmha ediliyor…'
+                        : 'Süresi dolan kayıtları imha et'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -915,7 +1083,16 @@ class _StatsTabState extends State<_StatsTab>
         final allLogs = snapshot.data ?? [];
 
         if (allLogs.isEmpty) {
-          return const Center(child: Text('Henüz mesaj kaydı yok.'));
+          // İmha kartı kayıt olmasa da görünür: imhanın yapıldığının
+          // kaydı, silinecek bir şey olmadığında da tutulmalıdır.
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _PeriyodikImhaKarti(firestoreService: widget.firestoreService),
+              const SizedBox(height: 32),
+              const Center(child: Text('Henüz mesaj kaydı yok.')),
+            ],
+          );
         }
 
         // Tarih filtresi uygula
@@ -940,6 +1117,9 @@ class _StatsTabState extends State<_StatsTab>
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            _PeriyodikImhaKarti(firestoreService: widget.firestoreService),
+            const SizedBox(height: 16),
+
             // ── Tarih Filtresi ──
             Card(
               shape: RoundedRectangleBorder(
@@ -1176,10 +1356,12 @@ class _StatsTabState extends State<_StatsTab>
                   dateStr = DateFormat('dd.MM.yyyy HH:mm', 'tr_TR')
                       .format(ts.toDate());
                 }
-                // Kanal ayrımı operasyon açısından kritiktir: 'uygulama'
-                // ile gelen talepte WhatsApp'a HİÇBİR MESAJ DÜŞMEZ, müşteri
-                // geri aranmayı bekler. Rozet olmazsa bu talepler sessizce
-                // gözden kaçar. Eski kayıtlarda alan yok; onlar WhatsApp'tır.
+                // 14.09.2026'dan itibaren tüm yeni talepler 'whatsapp'
+                // kanalındandır. 12–14 Eylül arasında uygulama içi kanal
+                // vardı; o döneme ait bir 'uygulama' kaydı varsa WhatsApp'a
+                // mesaj düşmemiştir ve müşteri geri aranmayı bekler — rozet
+                // bu yüzden korunuyor. Kanal alanı olmayan eski kayıtlar
+                // WhatsApp'tır.
                 final kanal = log['kanal'] as String? ?? 'whatsapp';
                 final uygulamaKanali = kanal == 'uygulama';
                 final kanalRengi = uygulamaKanali

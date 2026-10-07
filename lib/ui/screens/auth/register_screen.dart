@@ -4,6 +4,7 @@ import 'package:car_rental_mvp/ui/screens/legal/legal_document_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/legal_texts.dart';
 import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/helpers.dart';
@@ -31,11 +32,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _errorMessage;
 
   /// Aydınlatma metni + kullanım koşulları onayı — üyelik için zorunlu.
+  ///
+  /// 14.09.2026 — Ayrı "WhatsApp açık rızası" kutusu kaldırıldı. Kiralama
+  /// yalnızca WhatsApp'tan yürüdüğü için o aktarım rızaya dayanamaz (tek
+  /// kanal + rıza = hizmet şartı, geçersiz rıza); dayanak Kurul standart
+  /// sözleşmesidir. Bkz. SirketBilgileri.whatsappAktarimDayanagi.
   bool _sozlesmeOnayi = false;
 
-  /// WhatsApp (yurt dışı) aktarımı için açık rıza — isteğe bağlı.
-  /// KVKK gereği açık rıza, hizmetin ön şartı hâline getirilemez.
-  bool _acikRiza = false;
+  /// Aydınlatma Metni'nin okunduğuna ilişkin GERİ BİLDİRİM — zorunlu.
+  ///
+  /// Kurul'un 18.02.2026 tarihli ve 2026/347 sayılı ilke kararı: aydınlatma
+  /// için kişiden yalnızca "okudum" geri bildirimi alınır; onay veya rıza
+  /// istenmez. Bu yüzden eskiden tek kutuda birleşen "Aydınlatma Metni ve
+  /// Kullanım Koşulları" beyanı ikiye ayrıldı: sözleşme KABULÜ ile aydınlatma
+  /// GERİ BİLDİRİMİ aynı beyanda duramaz.
+  bool _aydinlatmaOkundu = false;
+
+  /// Kampanya iletişimi onayı — İSTEĞE BAĞLI, önceden işaretli DEĞİL.
+  ///
+  /// Uygulamadaki tek açık rıza. "Üye olan kampanyaya izin vermiş sayılır"
+  /// kurgusu geçersiz olduğu için ayrı kutuyla alınır: KVKK m.3/1-a açık
+  /// rızanın belirli, bilgilendirilmiş ve özgür iradeyle açıklanmış olmasını,
+  /// 6563 m.6 ise ticari elektronik iletiden önce onay alınmasını ister.
+  bool _kampanyaOnayi = false;
 
   @override
   void dispose() {
@@ -56,10 +75,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (!_sozlesmeOnayi) {
+    if (!_aydinlatmaOkundu || !_sozlesmeOnayi) {
       setState(() => _errorMessage =
-          'Üye olabilmek için Aydınlatma Metni ve Kullanım Koşulları\'nı '
-          'onaylamanız gerekiyor.');
+          'Üye olabilmek için Aydınlatma Metni\'ni okuduğunuzu belirtmeniz '
+          've Kullanım Koşulları\'nı kabul etmeniz gerekiyor.');
       return;
     }
 
@@ -76,7 +95,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         surname: _surnameController.text,
         phone: _phoneController.text,
         sozlesmeOnayi: _sozlesmeOnayi,
-        acikRizaVerildi: _acikRiza,
+        aydinlatmaOkundu: _aydinlatmaOkundu,
+        kampanyaOnayi: _kampanyaOnayi,
       );
 
       if (mounted) {
@@ -212,7 +232,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Divider(),
                   const SizedBox(height: 4),
 
-                  // ── Zorunlu onay: aydınlatma + kullanım koşulları ──
+                  // ── Zorunlu: Aydınlatma Metni okundu (geri bildirim) ──
+                  // Onay/rıza DEĞİL; Kurul 2026/347 ilke kararı gereği yalnızca
+                  // okunduğu bildirilir ve sözleşme kabulünden ayrı tutulur.
+                  _OnayKutusu(
+                    deger: _aydinlatmaOkundu,
+                    onDegisti: (v) => setState(() => _aydinlatmaOkundu = v),
+                    zorunlu: true,
+                    icerik: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _MetinBaglantisi(
+                          etiket: 'Aydınlatma Metni',
+                          ekran: LegalDocumentScreen.aydinlatma(),
+                        ),
+                        Text("'ni okudum.", style: AppTextStyles.bodySmall),
+                      ],
+                    ),
+                  ),
+
+                  // ── Zorunlu: Kullanım Koşulları kabulü ──
                   _OnayKutusu(
                     deger: _sozlesmeOnayi,
                     onDegisti: (v) => setState(() => _sozlesmeOnayi = v),
@@ -220,47 +259,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icerik: Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Okudum, anladım: ',
-                            style: AppTextStyles.bodySmall),
-                        _MetinBaglantisi(
-                          etiket: 'Aydınlatma Metni',
-                          ekran: LegalDocumentScreen.aydinlatma(),
-                        ),
-                        Text(' ve ', style: AppTextStyles.bodySmall),
                         _MetinBaglantisi(
                           etiket: 'Kullanım Koşulları',
                           ekran: LegalDocumentScreen.kullanimKosullari(),
                         ),
+                        Text("'nı okudum ve kabul ediyorum.",
+                            style: AppTextStyles.bodySmall),
                       ],
                     ),
                   ),
 
-                  // ── İsteğe bağlı onay: WhatsApp aktarımı açık rızası ──
+                  // ── İsteğe bağlı onay: kampanya iletişimi ──
                   _OnayKutusu(
-                    deger: _acikRiza,
-                    onDegisti: (v) => setState(() => _acikRiza = v),
+                    deger: _kampanyaOnayi,
+                    onDegisti: (v) => setState(() => _kampanyaOnayi = v),
                     zorunlu: false,
                     icerik: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text('Rezervasyon bilgilerimin WhatsApp üzerinden '
-                                'iletilmesine ',
-                                style: AppTextStyles.bodySmall),
-                            _MetinBaglantisi(
-                              etiket: 'açık rıza',
-                              ekran: LegalDocumentScreen.acikRiza(),
-                            ),
-                            Text(' veriyorum.', style: AppTextStyles.bodySmall),
-                          ],
+                        Text(LegalTexts.kampanyaOnayMetni,
+                            style: AppTextStyles.bodySmall),
+                        const SizedBox(height: 2),
+                        _MetinBaglantisi(
+                          etiket: 'Açık Rıza Metni',
+                          ekran: LegalDocumentScreen.acikRiza(),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'İsteğe bağlıdır. Onaylamadan da üye olabilirsiniz; '
-                          'yalnızca uygulamadan rezervasyon talebi gönderemezsiniz. '
-                          'Daha sonra profilinizden verebilirsiniz.',
+                          LegalTexts.kampanyaOnayAciklama,
                           style: AppTextStyles.caption
                               .copyWith(color: AppColors.textMuted),
                         ),

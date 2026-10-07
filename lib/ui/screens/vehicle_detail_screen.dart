@@ -9,8 +9,6 @@ import 'package:car_rental_mvp/data/models/user_model.dart';
 import 'package:car_rental_mvp/data/models/pickup_location_model.dart';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/auth/login_screen.dart';
-import 'package:car_rental_mvp/ui/screens/legal/legal_document_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/legal_texts.dart';
@@ -180,8 +178,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
       // KVKK m.3/1-a (özgür irade), m.4/2-a (dürüstlük) ve m.4/2-ç
       // (ölçülülük) bakımından rızayı sakatlayan kurgu buydu.
       //
-      // Rıza artık yalnızca WhatsApp kanalı seçildiğinde, gönderim anında
-      // isteniyor: bkz. _ReservationFormSheetState._whatsappIleGonder.
+      // 14.09.2026 — Rezervasyon yalnızca WhatsApp'tan yürüyor ve bu
+      // aktarım rızaya değil standart sözleşmeye dayanıyor; rıza hiçbir
+      // aşamada sorulmuyor. Bkz. _ReservationFormSheetState._whatsappIleGonder.
       if (!mounted) return;
 
       // Bottom sheet aç — alım yeri seçimi + onay
@@ -934,9 +933,8 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
   final FirestoreService _firestoreService = FirestoreService();
   final _formKey = GlobalKey<FormState>();
 
-  /// T.C. Kimlik No İSTEĞE BAĞLIDIR ve yalnızca WhatsApp kanalında,
-  /// gönderim anında istenir. Hiçbir yere kaydedilmez; sadece WhatsApp
-  /// mesajına eklenir.
+  /// T.C. Kimlik No İSTEĞE BAĞLIDIR. Hiçbir yere kaydedilmez; yalnızca
+  /// WhatsApp mesajına eklenir.
   ///
   /// Zorunlu olmaktan çıkarılma gerekçesi: sözleşme zaten şubede, kimlik
   /// belgesi ibraz edilerek kurulur. Talep aşamasında kimlik numarası
@@ -948,16 +946,13 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
   PickupLocation? _selectedPickupLocation;
   bool _isSending = false;
 
-  /// Hangi kanalın butonuna basıldığı — yalnızca yükleniyor göstergesi için.
-  String? _gonderilenKanal;
-
   @override
   void dispose() {
     _tcController.dispose();
     super.dispose();
   }
 
-  /// İki kanalın da ortak ön kontrolü.
+  /// Rezervasyon ekranının ön kontrolü.
   bool _formHazir() {
     if (!_formKey.currentState!.validate()) return false;
     if (_selectedPickupLocation == null) {
@@ -969,8 +964,8 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
     return true;
   }
 
-  /// Talebi ortak kayda yazar. [kanal] hukuki ayrımı taşır.
-  Future<void> _talebiKaydet(String kanal) {
+  /// Talebi yönetim panelinin takip kaydına yazar (T.C. Kimlik No KAYDEDİLMEZ).
+  Future<void> _talebiKaydet() {
     final selectedNumber = AppConstants.whatsappNumbers[_selectedNumberIndex];
     return _firestoreService
         .addWhatsAppLog(
@@ -984,100 +979,26 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
           phoneLabel: selectedNumber['label']!,
           pickupLocation: _selectedPickupLocation!.name,
           userId: widget.user.uid,
-          kanal: kanal,
         )
         .timeout(const Duration(seconds: 15));
   }
 
-  // ── Kanal 1: Uygulama içi gönderim (varsayılan) ─────────────────
+  // ── Rezervasyon: YALNIZCA WhatsApp ──────────────────────────────
   //
-  // Talep doğrudan Şirket'in Firestore veritabanına yazılır. Yurt dışına
-  // aktarım yoktur, açık rıza aranmaz.
+  // 14.09.2026 — Şirket kararı: kiralama talepleri yalnızca WhatsApp
+  // hattından alınır. 12 Eylül'de eklenen uygulama içi "Talebi Gönder"
+  // kanalı ve gönderim anında sorulan açık rıza kaldırıldı.
   //
-  // WhatsApp akışının aksine buradaki yazma İŞLEMİN KENDİSİDİR, yan kayıt
-  // değil. Bu yüzden başarısız olursa akış DURDURULUR ve kullanıcıya
-  // söylenir; sessizce yutulursa müşteri talebinin iletildiğini sanır.
-  Future<void> _uygulamaIleGonder() async {
-    if (!_formHazir()) return;
-
-    setState(() {
-      _isSending = true;
-      _gonderilenKanal = 'uygulama';
-    });
-
-    try {
-      await _talebiKaydet('uygulama');
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Talebiniz alındı. En kısa sürede sizi arayıp teyit edeceğiz.',
-          ),
-          duration: Duration(seconds: 4),
-        ),
-      );
-    } catch (e) {
-      debugPrint('Uygulama içi rezervasyon talebi yazılamadı: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Talebiniz gönderilemedi. İnternetinizi kontrol edip tekrar '
-            'deneyin ya da bizi telefonla arayın.',
-          ),
-          duration: Duration(seconds: 5),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSending = false;
-          _gonderilenKanal = null;
-        });
-      }
-    }
-  }
-
-  // ── Kanal 2: WhatsApp ile gönderim (isteğe bağlı) ───────────────
-  //
-  // Yurt dışına aktarım burada gerçekleşir; açık rıza ŞARTTIR ve rıza
-  // tam bu noktada, kullanıcı bu kanalı bilerek seçtikten sonra istenir.
+  // Rıza bilerek SORULMUYOR. WhatsApp tek kanal olunca aktarım rızaya
+  // dayanamaz: rıza hizmetin şartı hâline gelir ve geçersiz sayılır (avukat
+  // KVKK analizi 02 numaralı bulgu). Dayanak Kurul standart sözleşmesidir,
+  // bkz. SirketBilgileri.whatsappAktarimDayanagi. Rızayı "ek güvence" diye
+  // yine sormak da yanlış olurdu: başka bir hukuki sebep varken rıza istemek,
+  // kişiyi reddederse işlemenin duracağına inandırarak yanıltır.
   Future<void> _whatsappIleGonder() async {
     if (!_formHazir()) return;
 
-    // Rıza yoksa iste. Reddedilirse uygulama içi yol açık kalır.
-    if (!widget.user.acikRizaVerildi) {
-      final rizaVerildi = await _acikRizaSor();
-      if (rizaVerildi != true) return;
-
-      try {
-        await _firestoreService.updateUser(widget.user.uid, {
-          'acikRizaVerildi': true,
-          'acikRizaTarihi': FieldValue.serverTimestamp(),
-          'acikRizaGeriAlmaTarihi': FieldValue.delete(),
-          'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
-        });
-      } catch (e) {
-        debugPrint('Açık rıza kaydedilemedi: $e');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Onayınız kaydedilemedi. Talebinizi uygulama üzerinden '
-              'gönderebilirsiniz.',
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _isSending = true;
-      _gonderilenKanal = 'whatsapp';
-    });
+    setState(() => _isSending = true);
 
     final selectedNumber = AppConstants.whatsappNumbers[_selectedNumberIndex];
     final tcNo = _tcController.text.trim();
@@ -1085,13 +1006,13 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
     try {
       // 1. Talep kaydı (T.C. Kimlik No KAYDEDİLMEZ).
       //
-      // Bu kanalda kayıt yönetim panelinin takip listesidir; müşteri
-      // açısından asıl işlem WhatsApp'ın açılmasıdır. Bu yüzden kayıt
-      // YAZILAMAZSA AKIŞ DURDURULMAZ — aksi hâlde geçici bir bağlantı
-      // sorununda müşteri WhatsApp'a hiç ulaşamıyordu.
+      // Kayıt yönetim panelinin takip listesidir; müşteri açısından asıl
+      // işlem WhatsApp'ın açılmasıdır. Bu yüzden kayıt YAZILAMAZSA AKIŞ
+      // DURDURULMAZ — aksi hâlde geçici bir bağlantı sorununda müşteri
+      // WhatsApp'a hiç ulaşamıyordu.
       bool kayitYazildi = true;
       try {
-        await _talebiKaydet('whatsapp');
+        await _talebiKaydet();
       } catch (e) {
         kayitYazildi = false;
         debugPrint('Rezervasyon kaydı yazılamadı: $e');
@@ -1116,7 +1037,6 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
         Navigator.pop(context); // bottom sheet'i kapat
         if (!kayitYazildi) {
           // Müşteri WhatsApp'a ulaştı; yalnızca panel kaydı düşmedi.
-          // Suçlayıcı değil, bilgilendirici bir mesaj yeterli.
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Talebiniz WhatsApp üzerinden iletiliyor.'),
@@ -1124,13 +1044,13 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
           );
         }
       } else {
-        // Sheet AÇIK BIRAKILIR: kullanıcı uygulama içi gönderime
-        // dönebilsin ya da başka bir numara seçip yeniden denesin.
+        // Sheet AÇIK BIRAKILIR: kullanıcı yeniden deneyebilsin.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'WhatsApp açılamadı. Talebinizi "Talebi Gönder" düğmesiyle '
-              'uygulama üzerinden iletebilirsiniz.',
+              'WhatsApp açılamadı. Rezervasyon talepleri yalnızca WhatsApp '
+              'hattımızdan alınır; cihazınızda WhatsApp\'ın yüklü olduğundan '
+              'emin olup tekrar deneyin.',
             ),
             duration: Duration(seconds: 5),
           ),
@@ -1147,70 +1067,8 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSending = false;
-          _gonderilenKanal = null;
-        });
-      }
+      if (mounted) setState(() => _isSending = false);
     }
-  }
-
-  /// Açık rızayı yalnızca WhatsApp kanalı seçildiğinde sorar.
-  /// KVKK gereği rıza önceden işaretli sunulamaz ve reddedilebilir olmalıdır;
-  /// reddedildiğinde uygulama içi gönderim yolu açık kalır.
-  Future<bool?> _acikRizaSor() {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('WhatsApp için onayınız gerekiyor'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'WhatsApp ile gönderirseniz ad, soyad, telefon ve (yazdıysanız) '
-                'T.C. Kimlik Numaranız, sunucuları yurt dışında bulunan '
-                'WhatsApp altyapısı üzerinden aktarılır.',
-                style: TextStyle(height: 1.5),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Bu onayı vermek zorunda değilsiniz. "Vazgeç" derseniz '
-                'talebinizi uygulama üzerinden gönderebilirsiniz; o yolda '
-                'yurt dışına aktarım yapılmaz.',
-                style: TextStyle(height: 1.5),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => LegalDocumentScreen.ac(
-                    ctx, LegalDocumentScreen.acikRiza()),
-                child: Text(
-                  'Açık Rıza Metni\'ni oku',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Vazgeç'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Onaylıyorum'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -1322,10 +1180,7 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Kimlik numaranız uygulamaya HİÇBİR ŞEKİLDE KAYDEDİLMEZ. '
-                    'Yazarsanız yalnızca WhatsApp ile gönderim seçeneğinde, '
-                    'sözleşmenizin önceden hazırlanabilmesi için mesaja '
-                    'eklenir. Şubede zaten kimliğinizle teyit edilecektir.',
+                    LegalTexts.tcAlaniBilgisi,
                     style: AppTextStyles.caption
                         .copyWith(color: AppColors.textMuted),
                   ),
@@ -1463,30 +1318,24 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
               const SizedBox(height: 8),
             ],
 
-            // ── Gönderim kanalları ──
+            // ── Gönderim ──
             //
-            // Sıralama bilinçlidir: uygulama içi gönderim BİRİNCİL ve
-            // görsel olarak baskın kanaldır, WhatsApp ikincil bir seçenektir.
-            // Bankanın uyum incelemesi, WhatsApp'ın tek kanal olmasını
-            // "açık rızayı sakatlayan hizmet şartı" olarak niteledi;
-            // düzeltme yalnızca alternatif eklemek değil, alternatifin
-            // varsayılan yol olmasıdır.
+            // Tek kanal WhatsApp'tır (bkz. _whatsappIleGonder). Açıklama
+            // metni LegalTexts'ten gelir; yasal metinlerle aynı cümledir.
             SizedBox(
               height: AppConstants.buttonHeight,
               child: ElevatedButton.icon(
-                onPressed: _isSending ? null : _uygulamaIleGonder,
-                icon: _isSending && _gonderilenKanal == 'uygulama'
+                onPressed: _isSending ? null : _whatsappIleGonder,
+                icon: _isSending
                     ? const SizedBox(
                         width: 20, height: 20,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : const Icon(Icons.send_rounded),
-                label: Text(_isSending && _gonderilenKanal == 'uygulama'
-                    ? 'Gönderiliyor...'
-                    : 'Talebi Gönder'),
+                    : const Icon(Icons.chat_rounded),
+                label: Text(_isSending ? 'Açılıyor...' : 'WhatsApp ile gönder'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.whatsapp,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppConstants.buttonRadius),
@@ -1496,60 +1345,7 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Talebiniz doğrudan bize ulaşır, yurt dışına aktarılmaz. '
-              'Sizi arayıp teyit ederiz.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
-            ),
-
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                    child: Divider(
-                        color: AppColors.textMuted.withValues(alpha: 0.25))),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('ya da',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.textMuted)),
-                ),
-                Expanded(
-                    child: Divider(
-                        color: AppColors.textMuted.withValues(alpha: 0.25))),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            SizedBox(
-              height: AppConstants.buttonHeight,
-              child: OutlinedButton.icon(
-                onPressed: _isSending ? null : _whatsappIleGonder,
-                icon: _isSending && _gonderilenKanal == 'whatsapp'
-                    ? const SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFF25D366)),
-                      )
-                    : const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
-                label: Text(
-                  _isSending && _gonderilenKanal == 'whatsapp'
-                      ? 'Açılıyor...'
-                      : 'WhatsApp ile gönder',
-                  style: const TextStyle(color: Color(0xFF25D366)),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF25D366)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.buttonRadius),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'İsteğe bağlı. Verileriniz yurt dışına aktarılır, bu yüzden '
-              'ayrıca açık rızanız istenir.',
+              LegalTexts.rezervasyonKanalBilgisi,
               textAlign: TextAlign.center,
               style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
             ),

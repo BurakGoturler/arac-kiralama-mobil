@@ -4,7 +4,7 @@ class FaqMockData {
   static const List<FaqItemModel> faqItems = [
     FaqItemModel(
       question: 'Nasıl araç kiralayabilirim?',
-      answer: 'Uygulamamız üzerinden veya doğrudan WhatsApp hattımızdan istediğiniz aracı ve tarihleri belirterek kolayca kiralama yapabilirsiniz.',
+      answer: 'Rezervasyon talepleri yalnızca WhatsApp hattımızdan alınır. Uygulamada aracı ve tarihleri seçip "WhatsApp üzerinden rezervasyon yapın" düğmesine bastığınızda talebiniz hazır mesaj olarak WhatsApp\'ta açılır. Teyit ve ödemenin ardından kiralama sözleşmesi şubede, kimlik ve sürücü belgenizle kurulur.',
     ),
     FaqItemModel(
       question: 'Kiralama için hangi belgeler gerekli?',

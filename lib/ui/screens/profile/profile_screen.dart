@@ -114,41 +114,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.sayfayaGit(const ChangePasswordScreen());
   }
 
-  /// Açık rızayı verir veya geri alır (KVKK — rıza her zaman geri alınabilir).
-  Future<void> _toggleAcikRiza(bool yeniDeger) async {
+  /// Kampanya iletişimi onayını verir veya geri alır.
+  ///
+  /// Uygulamadaki tek açık rıza; isteğe bağlıdır ve her an geri alınabilir.
+  /// Verildiği ve geri alındığı an ayrı alanlara yazılır: ispat yükü
+  /// Şirket'tedir ve onay/ret İYS'ye bu tarihlerle yüklenir. firestore.rules
+  /// tarihlerin sunucu saatiyle yazılmasını zorunlu tutar.
+  Future<void> _toggleKampanyaOnayi(bool yeniDeger) async {
     if (_user == null) return;
 
     setState(() => _isSaving = true);
     try {
-      // Rızanın VERİLDİĞİ tarih korunur; geri alma ayrı bir alana yazılır.
-      //
-      // Eskiden geri alındığında `acikRizaTarihi` tamamen siliniyordu, yani
-      // rızanın ne zaman verildiği kaydı yok oluyordu. KVKK'da ispat yükü
-      // veri sorumlusundadır: hem rızanın alındığı an hem de geri alındığı
-      // an gösterilebilmelidir. Geri alma, o tarihe kadar yapılmış işlemleri
-      // geçersiz kılmaz — bu yüzden geçmişin silinmesi hatalıydı.
       await _firestoreService.updateUser(_user!.uid, {
-        'acikRizaVerildi': yeniDeger,
+        'kampanyaOnayi': yeniDeger,
         if (yeniDeger) ...{
-          'acikRizaTarihi': FieldValue.serverTimestamp(),
-          'acikRizaGeriAlmaTarihi': FieldValue.delete(),
-          'onayMetinSurumu': SirketBilgileri.sonGuncelleme,
+          'kampanyaOnayTarihi': FieldValue.serverTimestamp(),
+          'kampanyaMetinSurumu': SirketBilgileri.sonGuncelleme,
         } else
-          'acikRizaGeriAlmaTarihi': FieldValue.serverTimestamp(),
+          'kampanyaRetTarihi': FieldValue.serverTimestamp(),
       });
       await _loadProfile();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(yeniDeger
-              ? 'Açık rıza kaydedildi.'
-              : 'Açık rıza geri alındı.'),
+              ? 'Kampanya onayınız kaydedildi.'
+              : 'Kampanya onayınız geri alındı. Kampanya iletisi gönderilmeyecek.'),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İzin güncellenemedi. Tekrar deneyin.')),
+        const SnackBar(content: Text('Onay güncellenemedi. Tekrar deneyin.')),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -416,23 +413,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── KVKK: açık rıza yönetimi ──
+                    // ── Kampanya iletişimi onayı (isteğe bağlı) ──
+                    // Uygulamadaki tek açık rıza. Kiralama rızaya
+                    // dayanmadığı için anahtar kapalıyken hiçbir işlev
+                    // kısıtlanmaz; alt yazı bunu açıkça söyler.
                     const Divider(),
                     const SizedBox(height: 8),
-                    Text('Veri İzinleri', style: AppTextStyles.labelMedium),
+                    Text('Kampanya İletişimi', style: AppTextStyles.labelMedium),
                     const SizedBox(height: 4),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      value: _user!.acikRizaVerildi,
-                      onChanged: _isSaving ? null : _toggleAcikRiza,
-                      title: Text('WhatsApp ile rezervasyon gönderimi',
+                      value: _user!.kampanyaOnayi,
+                      onChanged: _isSaving ? null : _toggleKampanyaOnayi,
+                      title: Text('SMS ve WhatsApp ile kampanya ve fırsatlar',
                           style: AppTextStyles.bodyMedium),
                       subtitle: Text(
-                        _user!.acikRizaVerildi
-                            ? 'Açık rıza verdiniz. Kapatırsanız uygulamadan '
-                                'rezervasyon talebi gönderemezsiniz.'
-                            : 'Rıza vermediniz. Rezervasyon göndermek için '
-                                'açmanız gerekir.',
+                        _user!.kampanyaOnayi
+                            ? LegalTexts.kampanyaProfilAcik
+                            : LegalTexts.kampanyaProfilKapali,
                         style: AppTextStyles.caption
                             .copyWith(color: AppColors.textMuted),
                       ),
@@ -445,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ekran: LegalDocumentScreen.aydinlatma(),
                     ),
                     _YasalBaglanti(
-                      etiket: 'Açık Rıza Metni',
+                      etiket: 'Açık Rıza Metni (Kampanya İletişimi)',
                       ekran: LegalDocumentScreen.acikRiza(),
                     ),
                     _YasalBaglanti(
@@ -458,12 +456,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Hesap silme ──
+                    // ── Hesap silme (KVKK m.7) ──
+                    // Açıklama LegalTexts'ten gelir: aydınlatma metninin
+                    // 6. maddesi ile aynı kapsamı söyler.
                     const Divider(),
                     const SizedBox(height: 8),
                     Text(
-                      'Hesabınızı sildiğinizde kişisel verileriniz kalıcı '
-                      'olarak silinir ve bu işlem geri alınamaz.',
+                      LegalTexts.hesapSilmeBilgisi,
                       style: AppTextStyles.caption
                           .copyWith(color: AppColors.textMuted),
                     ),

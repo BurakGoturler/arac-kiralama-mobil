@@ -53,6 +53,11 @@ class AppConstants {
   ];
 
 // WhatsApp mesaj şablonu (müşteri bilgili + alım yeri versiyon)
+  //
+  // T.C. Kimlik No satırı YALNIZCA alan doldurulduysa eklenir. Aydınlatma
+  // metni "bu alanı doldurursanız mesaja eklenir" diyor; boşken mesajda
+  // "TC No:" satırının görünmesi hem metinle çelişiyor hem de müşteriye
+  // numarayı yazması gerekiyormuş izlenimi veriyordu.
   static String whatsappMessageWithCustomer({
     required String vehicleName,
     required String startDate,
@@ -65,7 +70,7 @@ class AppConstants {
   }) =>
       'Merhaba, mobil uygulamanız üzerinden rezervasyon yapmak istiyorum.\n\n'
           'Ad Soyad: $customerName $customerSurname\n'
-          'TC No: $customerTc\n'
+          '${customerTc.trim().isEmpty ? '' : 'TC No: ${customerTc.trim()}\n'}'
           'Telefon: $customerPhone\n'
           'Araç: $vehicleName\n'
           'Tarih: $startDate - $endDate\n'

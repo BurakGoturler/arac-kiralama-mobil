@@ -69,10 +69,23 @@ service cloud.firestore {
       //
       // T.C. Kimlik Numarası bu koleksiyonda hiç saklanmadığı için
       // ilgili bir alan da beklenmez.
+      //
+      // 14.09.2026 — 'acikRizaVerildi is bool' şartı kaldırıldı: uygulamada
+      // rızaya dayanan işleme kalmadı, alan artık yazılmıyor.
       allow create: if kendisi(uid)
                     && request.resource.data.role == 'customer'
                     && request.resource.data.sozlesmeOnayi == true
-                    && request.resource.data.acikRizaVerildi is bool
+                    // 14.09.2026 — Kurul 2026/347: aydınlatma için yalnızca
+                    // "okudum" geri bildirimi alınır ve sözleşme kabulünden
+                    // ayrı tutulur. İkisi de üyelik için zorunlu.
+                    && request.resource.data.aydinlatmaOkundu == true
+                    // Kampanya onayı isteğe bağlıdır; verildiyse tarihi
+                    // sunucu saatiyle yazılmak zorundadır (ispat).
+                    && (
+                      !('kampanyaOnayi' in request.resource.data)
+                      || request.resource.data.kampanyaOnayi == false
+                      || request.resource.data.kampanyaOnayTarihi == request.time
+                    )
                     && request.resource.data.email is string
                     && request.resource.data.name is string
                     && request.resource.data.surname is string
@@ -88,6 +101,18 @@ service cloud.firestore {
                     && (
                       !('favoriteVehicleIds' in request.resource.data) ||
                       request.resource.data.favoriteVehicleIds.size() <= 200
+                    )
+                    // Kampanya onayı değişiyorsa, verme veya geri alma
+                    // tarihi sunucu saatiyle yazılmak zorundadır. Onay ve
+                    // ret anı İYS kaydının ve ispatın dayanağıdır; istemcinin
+                    // geçmiş ya da ileri bir tarih yazması engellenir.
+                    && (
+                      !('kampanyaOnayi' in request.resource.data)
+                      || request.resource.data.kampanyaOnayi == resource.data.get('kampanyaOnayi', false)
+                      || (request.resource.data.kampanyaOnayi == true
+                          && request.resource.data.kampanyaOnayTarihi == request.time)
+                      || (request.resource.data.kampanyaOnayi == false
+                          && request.resource.data.kampanyaRetTarihi == request.time)
                     );
 
       // Hesap silme (KVKK m.7 — silme hakkı). Kullanıcı kendi kaydını siler.
@@ -116,11 +141,15 @@ service cloud.firestore {
     // ÖNEMLİ: Denetim öncesinde bu koleksiyona kimlik doğrulaması
     // olmadan kayıt eklenebiliyordu. Aşağıdaki kurallar bunu kapatır.
     //
-    // 12.09.2026 — Koleksiyon adı tarihsel; artık YALNIZCA WhatsApp
-    // taleplerini değil, uygulama içinden gönderilen talepleri de tutuyor.
-    // Ayrımı 'kanal' alanı yapar: 'uygulama' | 'whatsapp'.
-    // Ad değişmedi çünkü canlı veriyi taşımak yayın öncesinde gereksiz risk;
-    // dışarıya görünen bir ad da değil.
+    // 14.09.2026 — Şirket kararı: kiralama talepleri YALNIZCA WhatsApp'tan
+    // alınır. Bu koleksiyon, WhatsApp'a yönlendirilen taleplerin yönetim
+    // paneli takip kaydıdır; 'kanal' her zaman 'whatsapp'tır.
+    //
+    // AÇIK RIZA ŞARTI KALDIRILDI. WhatsApp tek kanal olunca aktarım rızaya
+    // dayanamaz (rıza hizmet şartı olur ve geçersizdir — avukat KVKK
+    // analizi 02 numaralı bulgu). Dayanak Kurul standart sözleşmesidir
+    // (WhatsApp Business Veri Aktarım Eki). Rıza şartını kuralda bırakmak,
+    // rıza vermeyen herkesi kiralamadan tamamen dışlardı.
     match /whatsapp_logs/{id} {
 
       // Yalnızca yönetici okuyabilir; kullanıcı kendi kayıtlarını görebilir.
@@ -129,18 +158,6 @@ service cloud.firestore {
 
       // Oluşturma: e-postası doğrulanmış kullanıcı, YALNIZCA kendi adına.
       //
-      // AÇIK RIZA ARTIK GENEL ŞART DEĞİL. Eskiden her talep için
-      // acikRizaVerildi == true aranıyordu; rezervasyonun tek kanalı
-      // WhatsApp olduğu için bu, hizmeti açık rıza şartına bağlıyordu
-      // (KVKK m.3/1-a özgür irade, m.4/2-a dürüstlük, m.4/2-ç ölçülülük;
-      // Kurul'un paket rıza / hizmet şartı yasağı). Banka uyum incelemesi
-      // bu nedenle rızayı "sakat ve geçersiz" saydı.
-      //
-      // Yeni kural: rıza YALNIZCA yurt dışına aktarımın fiilen gerçekleştiği
-      // WhatsApp kanalı için aranır. Uygulama içi gönderim rıza istemez.
-      // Böylece rızanın ispatı sunucu tarafında sürüyor, ama rıza artık
-      // hizmetin şartı değil.
-      //
       // T.C. Kimlik Numarası kaydedilmediği için 'customerTc' alanının
       // yazılması açıkça yasaklanır; ileride yanlışlıkla eklenmesi hâlinde
       // yazma işlemi reddedilir.
@@ -148,12 +165,7 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && !('customerTc' in request.resource.data)
-                    && request.resource.data.kanal in ['uygulama', 'whatsapp']
-                    && (
-                      request.resource.data.kanal == 'uygulama' ||
-                      get(/databases/$(database)/documents/users/$(request.auth.uid))
-                        .data.acikRizaVerildi == true
-                    )
+                    && request.resource.data.kanal == 'whatsapp'
                     && request.resource.data.vehicleName is string
                     && request.resource.data.vehicleName.size() <= 120
                     && request.resource.data.customerName.size() <= 60
@@ -170,6 +182,44 @@ service cloud.firestore {
       // kişisel verileri geride bırakmaması için gereklidir.
       allow delete: if yonetici()
                     || (girisYapmis() && resource.data.userId == request.auth.uid);
+    }
+
+    // ── imha_kayitlari — İmha Yönetmeliği m.7/3 ──────────────────
+    // Her silme/imha işleminin kaydı. Kayıtlar DEĞİŞTİRİLEMEZ ve en az
+    // 3 yıl dolmadan SİLİNEMEZ; aksi hâlde imhanın yapıldığı ispat edilemez.
+    //
+    // İki tür kayıt var ve alanları kesin olarak sınırlıdır:
+    //   'periyodik'   → yönetim panelinden, yalnızca yönetici; işlemi yapan
+    //                   yöneticinin uid'si kendi kimliğiyle eşleşmek zorunda.
+    //   'hesap_silme' → kullanıcının kendi hesabını silmesi. MÜŞTERİ KİŞİSEL
+    //                   VERİSİ İÇEREMEZ: uid, e-posta, ad yazılamaz; yalnızca
+    //                   tür, tarih ve silinen talep sayısı.
+    match /imha_kayitlari/{id} {
+      allow read: if yonetici();
+
+      allow create: if (
+                      yonetici()
+                      && request.resource.data.tur == 'periyodik'
+                      && request.resource.data.keys().hasOnly([
+                           'tur', 'tarih', 'kategori', 'saklamaSuresiGun',
+                           'sinirTarihi', 'silinenKayitSayisi', 'yapanUid'])
+                      && request.resource.data.tarih == request.time
+                      && request.resource.data.yapanUid == request.auth.uid
+                      && request.resource.data.silinenKayitSayisi is int
+                    ) || (
+                      girisYapmis()
+                      && request.resource.data.tur == 'hesap_silme'
+                      && request.resource.data.keys().hasOnly([
+                           'tur', 'tarih', 'silinenTalepSayisi'])
+                      && request.resource.data.tarih == request.time
+                      && request.resource.data.silinenTalepSayisi is int
+                    );
+
+      allow update: if false;
+
+      // 3 yıllık asgari süre dolduktan sonra yönetici silebilir.
+      allow delete: if yonetici()
+                    && resource.data.tarih < request.time - duration.value(1095, 'd');
     }
 
     // ── Diğer her şey ────────────────────────────────────────────

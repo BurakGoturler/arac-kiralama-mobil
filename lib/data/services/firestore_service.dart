@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/constants/kvkk_envanter.dart';
 import '../models/vehicle.dart';
 import '../models/campaign_model.dart';
 import '../models/user_model.dart';
@@ -147,18 +149,14 @@ class FirestoreService {
   // WHATSAPP LOG
   // ═══════════════════════════════════════════════════════
 
-  /// Yeni rezervasyon talep kaydı ekle.
+  /// WhatsApp'a yönlendirilen rezervasyon talebinin takip kaydını ekler.
   ///
-  /// [kanal] talebin hangi yoldan geldiğini söyler ve hukuken belirleyicidir:
-  ///
-  ///   'uygulama' → Talep doğrudan Şirket sistemlerine yazılır. Yurt dışına
-  ///                aktarım yoktur, bu yüzden AÇIK RIZA ARANMAZ.
-  ///   'whatsapp' → Kayıt yazıldıktan sonra kullanıcı WhatsApp'a yönlendirilir.
-  ///                Yurt dışına aktarım gerçekleşir; açık rıza şarttır ve
-  ///                firestore.rules bunu sunucu tarafında da doğrular.
-  ///
-  /// Bu ayrım, bankanın uyum incelemesindeki "rezervasyonun tek kanal olarak
-  /// WhatsApp'a bağlanması açık rızayı sakatlar" bulgusunun karşılığıdır.
+  /// 14.09.2026 — Şirket kararı: kiralama talepleri YALNIZCA WhatsApp'tan
+  /// alınır. 12 Eylül'de eklenen 'uygulama' kanalı kaldırıldı; 'kanal' alanı
+  /// panelin eski kayıtları ayırt edebilmesi için 'whatsapp' olarak yazılmaya
+  /// devam eder ve firestore.rules bu değeri zorunlu tutar. Aktarımın
+  /// dayanağı açık rıza değil standart sözleşmedir
+  /// (SirketBilgileri.whatsappAktarimDayanagi).
   ///
   /// DİKKAT: T.C. Kimlik Numarası bilinçli olarak KAYDEDİLMEZ. İsteğe bağlı
   /// olarak yalnızca WhatsApp mesajına eklenir, hiçbir yere yazılmaz
@@ -174,9 +172,8 @@ class FirestoreService {
     required String phoneLabel,
     required String pickupLocation,
     required String userId,
-    required String kanal,
   }) async {
-    assert(kanal == 'uygulama' || kanal == 'whatsapp');
+    const kanal = 'whatsapp';
     await _db.collection('whatsapp_logs').add({
       'customerName': customerName,
       'customerSurname': customerSurname,
@@ -210,27 +207,76 @@ class FirestoreService {
     }).toList());
   }
 
-  /// Saklama süresi dolmuş rezervasyon kayıtlarını siler (KVKK — imha).
-  /// Yönetim panelinden elle tetiklenir; ileride bir Cloud Function ile
-  /// otomatikleştirilebilir.
-  Future<int> deleteExpiredWhatsAppLogs({int saklamaSuresiGun = 730}) async {
+  /// Saklama süresi dolmuş rezervasyon kayıtlarını siler ve imha kaydı
+  /// oluşturur (KVKK — periyodik imha, İmha Yönetmeliği m.7/3 ve m.11).
+  ///
+  /// Yönetim panelinin İstatistik sekmesindeki "Periyodik İmha" kartından
+  /// tetiklenir. Süre [SaklamaSureleri.rezervasyonKaydiGun]'den gelir; yasal
+  /// metinlerdeki "2 yıl" ile aynı sabittir (test ile denetlenir).
+  ///
+  /// Eskiden tek seferde en fazla 500 kayıt siliyordu ve fazlası sessizce
+  /// kalıyordu; artık süresi dolan kayıt kalmayana kadar parça parça siler.
+  /// Silinecek kayıt olmasa da imha kaydı yazılır: periyodik imhanın
+  /// yapıldığı, silinecek bir şey bulunmadığında da ispat edilebilmelidir.
+  Future<int> deleteExpiredWhatsAppLogs({
+    int saklamaSuresiGun = SaklamaSureleri.rezervasyonKaydiGun,
+  }) async {
     final sinir = DateTime.now().subtract(Duration(days: saklamaSuresiGun));
+    var toplam = 0;
 
-    final snapshot = await _db
-        .collection('whatsapp_logs')
-        .where('createdAt', isLessThan: Timestamp.fromDate(sinir))
-        .limit(500)
-        .get();
+    while (true) {
+      final snapshot = await _db
+          .collection('whatsapp_logs')
+          .where('createdAt', isLessThan: Timestamp.fromDate(sinir))
+          .limit(500)
+          .get();
 
-    if (snapshot.docs.isEmpty) return 0;
+      if (snapshot.docs.isEmpty) break;
 
-    final batch = _db.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
+      final batch = _db.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      toplam += snapshot.docs.length;
+
+      if (snapshot.docs.length < 500) break;
     }
-    await batch.commit();
 
-    return snapshot.docs.length;
+    await _db.collection('imha_kayitlari').add({
+      'tur': 'periyodik',
+      'tarih': FieldValue.serverTimestamp(),
+      'kategori': SaklamaSureleri.rezervasyonKaydi,
+      'saklamaSuresiGun': saklamaSuresiGun,
+      'sinirTarihi': Timestamp.fromDate(sinir),
+      'silinenKayitSayisi': toplam,
+      'yapanUid': FirebaseAuth.instance.currentUser?.uid,
+    });
+
+    return toplam;
+  }
+
+  /// Son periyodik imhanın tarihi (hiç yapılmadıysa null).
+  ///
+  /// Sorgu yalnızca 'tur' eşitliğiyle yapılır ve en yeni tarih istemcide
+  /// seçilir: eşitlik + farklı alanda sıralama bileşik dizin ister, periyodik
+  /// kayıtlar ise yılda iki tane olduğu için istemcide seçmek maliyetsizdir.
+  /// Sunucu zaman damgası henüz yazılmamış (bekleyen) kayıtlar atlanır.
+  Stream<DateTime?> getSonPeriyodikImhaTarihiStream() {
+    return _db
+        .collection('imha_kayitlari')
+        .where('tur', isEqualTo: 'periyodik')
+        .snapshots()
+        .map((snapshot) {
+      DateTime? enYeni;
+      for (final doc in snapshot.docs) {
+        final tarih = (doc.data()['tarih'] as Timestamp?)?.toDate();
+        if (tarih != null && (enYeni == null || tarih.isAfter(enYeni))) {
+          enYeni = tarih;
+        }
+      }
+      return enYeni;
+    });
   }
 
 
