@@ -54,8 +54,11 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
 
   double get _totalPrice => _totalDays * v.dailyPrice;
 
+  /// Yönetim panelindeki "Müsait — Kiralamaya açık mı?" anahtarı.
+  /// Eskiden yalnızca kaydediliyor, müşteri tarafında hiç okunmuyordu;
+  /// kiralamaya kapatılmış araç için de talep gönderilebiliyordu.
   bool get _canReserve =>
-      _startDate != null && _endDate != null && _totalDays > 0;
+      v.isAvailable && _startDate != null && _endDate != null && _totalDays > 0;
 
   Future<void> _pickDate({required bool isStart}) async {
     final now = DateTime.now();
@@ -108,6 +111,10 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   }
 
   Future<void> _reserve() async {
+    if (!v.isAvailable) {
+      _uyariGoster('Bu araç şu an kiralamaya kapalı.');
+      return;
+    }
     if (!_canReserve) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -465,6 +472,12 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     super.initState();
     _pageController = PageController(initialPage: widget.initialIndex);
     _currentIndex = widget.initialIndex;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -897,7 +910,9 @@ class _ReservationBar extends StatelessWidget {
           if (!canReserve) ...[
             const SizedBox(height: 8),
             Text(
-              'Devam etmek için tarih seçin',
+              vehicle.isAvailable
+                  ? 'Devam etmek için tarih seçin'
+                  : 'Bu araç şu an kiralamaya kapalı',
               style: AppTextStyles.caption.copyWith(
                 color: AppColors.textMuted,
               ),

@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:car_rental_mvp/core/constants/app_constants.dart';
 import 'package:car_rental_mvp/core/constants/kvkk_envanter.dart';
 import 'package:car_rental_mvp/core/constants/legal_texts.dart';
 import 'package:car_rental_mvp/core/utils/helpers.dart';
+import 'package:car_rental_mvp/ui/widgets/filter_bottom_sheet.dart';
 
 void main() {
   group('T.C. Kimlik No doğrulama', () {
@@ -80,6 +82,33 @@ void main() {
       final baslangic = DateTime(2026, 7, 1);
       final bitis = DateTime(2026, 7, 4);
       expect(AppHelpers.totalPrice(1500, baslangic, bitis), 4500);
+    });
+  });
+
+  group('Fiyat süzgeci', () {
+    const tamAralik = RangeValues(
+        FilterBottomSheet.minPrice, FilterBottomSheet.maxPrice);
+
+    test('varsayılan aralık hiçbir aracı gizlemez', () {
+      // Eskiden 5000 TL üstü ve 500 TL altı araçlar filtre seçilmeden
+      // ana sayfadan kayboluyordu.
+      expect(FilterBottomSheet.fiyatUygun(12000, tamAralik), isTrue);
+      expect(FilterBottomSheet.fiyatUygun(300, tamAralik), isTrue);
+      expect(FilterBottomSheet.fiyatUygun(1500, tamAralik), isTrue);
+    });
+
+    test('daraltılmış aralık uygulanır', () {
+      const aralik = RangeValues(1000, 2000);
+      expect(FilterBottomSheet.fiyatUygun(999, aralik), isFalse);
+      expect(FilterBottomSheet.fiyatUygun(1000, aralik), isTrue);
+      expect(FilterBottomSheet.fiyatUygun(2000, aralik), isTrue);
+      expect(FilterBottomSheet.fiyatUygun(2001, aralik), isFalse);
+    });
+
+    test('üst uç en sondaysa üst sınır yoktur', () {
+      const aralik = RangeValues(2000, FilterBottomSheet.maxPrice);
+      expect(FilterBottomSheet.fiyatUygun(9000, aralik), isTrue);
+      expect(FilterBottomSheet.fiyatUygun(1500, aralik), isFalse);
     });
   });
 

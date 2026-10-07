@@ -122,6 +122,28 @@ class _CardImage extends StatelessWidget {
               left: 14,
               child: _CategoryBadge(category: vehicle.category),
             ),
+            // Yönetici aracı kiralamaya kapattıysa müşteri bunu detaya
+            // girmeden görmeli.
+            if (!vehicle.isAvailable)
+              Positioned(
+                left: 14,
+                bottom: 14,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusS),
+                  ),
+                  child: Text(
+                    'Şu an müsait değil',
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
             // Featured badge
             if (vehicle.isFeatured)
               Positioned(

@@ -23,6 +23,22 @@ class FilterBottomSheet extends StatefulWidget {
 
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
+
+  /// Kaydırıcının uç değerleri. Ana ekranın varsayılan aralığı da budur.
+  static const double minPrice = 500;
+  static const double maxPrice = 5000;
+
+  /// Günlük fiyatın seçili aralığa uyup uymadığı.
+  ///
+  /// Kaydırıcı uçtaysa o yön SINIRSIZ sayılır. Eskiden aralık kelimesi
+  /// kelimesine uygulanıyordu: günlük fiyatı 5000 ₺'yi aşan (ya da 500 ₺'nin
+  /// altında kalan) bir araç, kullanıcı hiçbir filtre seçmemişken bile ana
+  /// sayfada hiç görünmüyordu.
+  static bool fiyatUygun(double fiyat, RangeValues aralik) {
+    final altUygun = aralik.start <= minPrice || fiyat >= aralik.start;
+    final ustUygun = aralik.end >= maxPrice || fiyat <= aralik.end;
+    return altUygun && ustUygun;
+  }
 }
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
@@ -30,8 +46,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late RangeValues _priceRange;
   late String _transmission;
 
-  static const double _minPrice = 500;
-  static const double _maxPrice = 5000;
+  static const double _minPrice = FilterBottomSheet.minPrice;
+  static const double _maxPrice = FilterBottomSheet.maxPrice;
   static const List<String> _transmissions = ['Hepsi', 'Otomatik', 'Manuel'];
 
   @override
@@ -144,7 +160,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 children: [
                   Text('Günlük Fiyat', style: AppTextStyles.headingMedium),
                   Text(
-                    '₺${_priceRange.start.round()} – ₺${_priceRange.end.round()}',
+                    '₺${_priceRange.start.round()} – ₺${_priceRange.end.round()}'
+                    '${_priceRange.end >= _maxPrice ? '+' : ''}',
                     style: AppTextStyles.bodyLarge
                         .copyWith(color: AppColors.primary),
                   ),

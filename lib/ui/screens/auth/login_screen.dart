@@ -89,8 +89,20 @@ class _LoginScreenState extends State<LoginScreen> {
         isAdmin ? const AdminDashboardScreen() : const HomeScreen(),
       );
     } catch (e) {
+      if (!mounted) return;
+      // Her hata eskiden "şifre hatalı" diye gösteriliyordu; internet yokken
+      // ya da çok sayıda denemeden sonra kullanıcı doğru şifresini boşuna
+      // değiştirmeye çalışıyordu.
+      final kod = e is FirebaseAuthException ? e.code : '';
       setState(() {
-        _errorMessage = 'Giriş başarısız. E-posta veya şifre hatalı.';
+        _errorMessage = switch (kod) {
+          'network-request-failed' =>
+            'Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.',
+          'too-many-requests' =>
+            'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.',
+          'user-disabled' => 'Bu hesap devre dışı bırakılmış.',
+          _ => 'Giriş başarısız. E-posta veya şifre hatalı.',
+        };
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);

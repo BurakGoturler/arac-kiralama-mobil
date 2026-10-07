@@ -37,7 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _endDate;
 
   String _selectedCategory = AppConstants.allCategory;
-  RangeValues _priceRange = const RangeValues(500, 5000);
+  RangeValues _priceRange = const RangeValues(
+      FilterBottomSheet.minPrice, FilterBottomSheet.maxPrice);
   String _selectedTransmission = 'Hepsi';
 
   String _searchQuery = '';
@@ -76,25 +77,28 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _applyFilters() {
-    var tempVehicles = _allVehicles.where((v) {
-      final categoryMatch =
-          _selectedCategory == AppConstants.allCategory || v.category == _selectedCategory;
-      final priceMatch =
-          v.dailyPrice >= _priceRange.start && v.dailyPrice <= _priceRange.end;
-      final transmissionMatch =
-          _selectedTransmission == 'Hepsi' || v.transmission == _selectedTransmission;
-      return categoryMatch && priceMatch && transmissionMatch;
+  /// Kategori, fiyat, vites ve arama süzgecini uygular.
+  ///
+  /// Eskiden aynı mantık iki yerde (burada ve build içinde) ayrı ayrı
+  /// yazılıydı; birinde yapılan düzeltme diğerine yansımıyordu.
+  List<Vehicle> _suz(List<Vehicle> araclar) {
+    final searchTerm = _searchQuery.toLowerCase().replaceAll(' ', '');
+    return araclar.where((v) {
+      final categoryMatch = _selectedCategory == AppConstants.allCategory ||
+          v.category == _selectedCategory;
+      final priceMatch = FilterBottomSheet.fiyatUygun(v.dailyPrice, _priceRange);
+      final transmissionMatch = _selectedTransmission == 'Hepsi' ||
+          v.transmission == _selectedTransmission;
+      if (!(categoryMatch && priceMatch && transmissionMatch)) return false;
+      if (searchTerm.isEmpty) return true;
+      final vehicleName = v.name.toLowerCase().replaceAll(' ', '');
+      final vehicleBrand = v.brand.toLowerCase().replaceAll(' ', '');
+      return vehicleName.contains(searchTerm) || vehicleBrand.contains(searchTerm);
     }).toList();
+  }
 
-    if (_searchQuery.isNotEmpty) {
-      tempVehicles = tempVehicles.where((vehicle) {
-        final searchTerm = _searchQuery.toLowerCase().replaceAll(' ', '');
-        final vehicleName = vehicle.name.toLowerCase().replaceAll(' ', '');
-        final vehicleBrand = vehicle.brand.toLowerCase().replaceAll(' ', '');
-        return vehicleName.contains(searchTerm) || vehicleBrand.contains(searchTerm);
-      }).toList();
-    }
+  void _applyFilters() {
+    final tempVehicles = _suz(_allVehicles);
 
     setState(() {
       _filteredVehicles = tempVehicles;
@@ -385,28 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (snapshot.hasData) {
               _allVehicles = snapshot.data!;
               // Filtre uygula ama setState çağırmadan (build içindeyiz)
-              var tempVehicles = _allVehicles.where((v) {
-                final categoryMatch =
-                    _selectedCategory == AppConstants.allCategory ||
-                        v.category == _selectedCategory;
-                final priceMatch = v.dailyPrice >= _priceRange.start &&
-                    v.dailyPrice <= _priceRange.end;
-                final transmissionMatch = _selectedTransmission == 'Hepsi' ||
-                    v.transmission == _selectedTransmission;
-                return categoryMatch && priceMatch && transmissionMatch;
-              }).toList();
-
-              if (_searchQuery.isNotEmpty) {
-                tempVehicles = tempVehicles.where((vehicle) {
-                  final searchTerm = _searchQuery.toLowerCase().replaceAll(' ', '');
-                  final vehicleName = vehicle.name.toLowerCase().replaceAll(' ', '');
-                  final vehicleBrand = vehicle.brand.toLowerCase().replaceAll(' ', '');
-                  return vehicleName.contains(searchTerm) ||
-                      vehicleBrand.contains(searchTerm);
-                }).toList();
-              }
-
-              _filteredVehicles = tempVehicles;
+              _filteredVehicles = _suz(_allVehicles);
               _updatePaginatedVehicles();
             }
 
@@ -426,15 +409,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
                       if (date != null) {
-                        setState(() => _startDate = date);
+                        // Detay ekranındaki seçiciyle aynı kural: yeni alım
+                        // tarihi teslim tarihini geçerse teslim temizlenir.
+                        // Eskiden teslim alımdan önce kalabiliyor, detay
+                        // ekranına negatif süre gidiyordu.
+                        setState(() {
+                          _startDate = date;
+                          if (_endDate != null && !_endDate!.isAfter(date)) {
+                            _endDate = null;
+                          }
+                        });
                       }
                     },
                     onSelectEnd: () async {
+                      // Teslim en erken alımın ertesi günüdür; aynı gün
+                      // seçilince süre 0 çıkıyor ve rezervasyon düğmesi
+                      // açıklamasız kilitleniyordu.
+                      final ilkGun = (_startDate ?? DateTime.now())
+                          .add(const Duration(days: 1));
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: _endDate ?? _startDate ?? DateTime.now(),
-                        firstDate: _startDate ?? DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate: _endDate != null && !_endDate!.isBefore(ilkGun)
+                            ? _endDate!
+                            : ilkGun,
+                        firstDate: ilkGun,
+                        lastDate: DateTime.now().add(const Duration(days: 366)),
                       );
                       if (date != null) {
                         setState(() => _endDate = date);
