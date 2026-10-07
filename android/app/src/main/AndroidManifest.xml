@@ -52,6 +52,12 @@
             <data android:scheme="https" />
         </intent>
 
+        <!-- "Bizi Ara" dugmesi (tel: baglantisi) -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+
         <!-- Authenticator uygulamalari (Android 11+ gorunurluk).
              Yonetici hesabina TOTP kurarken otpauth:// adresi dogrudan
              Google/Microsoft Authenticator'da acilir. Bu tanim olmadan

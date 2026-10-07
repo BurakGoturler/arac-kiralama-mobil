@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
-import 'home_screen.dart';
+import 'ana_kabuk.dart';
 
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/auth/email_verification_screen.dart';
@@ -164,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Giriş yapılmamışsa → HomeScreen (misafir modu, görüntüleme serbest)
     if (!authService.isLoggedIn) {
-      return const HomeScreen();
+      return const AnaKabuk();
     }
 
     // Buradan sonrası ağ erişimi gerektirir. Bağlantı yoksa veya yavaşsa
@@ -182,13 +182,13 @@ class _SplashScreenState extends State<SplashScreen>
       final isAdmin =
           await authService.isCurrentUserAdmin().timeout(_agZamanAsimi);
 
-      return isAdmin ? const AdminDashboardScreen() : const HomeScreen();
+      return isAdmin ? const AdminDashboardScreen() : const AnaKabuk();
     } catch (e) {
       // Ağ hatası, zaman aşımı veya oturumun sunucuda geçersiz kılınması.
       // Kullanıcıyı kilitlemek yerine uygulamayı açıyoruz; oturumu varsa
       // ana sayfada normal şekilde kullanmaya devam eder.
       debugPrint('SPLASH: yönlendirme sırasında hata — $e');
-      return const HomeScreen();
+      return const AnaKabuk();
     }
   }
 

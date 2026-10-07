@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../navigation/app_page_route.dart';
 
@@ -37,7 +36,18 @@ class AppColors {
 }
 
 class AppTextStyles {
-  static TextStyle get displayLarge => GoogleFonts.dmSerifDisplay(
+  // Yazı tipleri uygulamanın içinde (assets/fonts). Eskiden google_fonts
+  // paketi bunları her kurulumda Google sunucularından indiriyordu: her
+  // kullanıcının IP adresi Google'a gidiyordu (yasal metinlerde yoktu) ve
+  // bağlantı yavaşken metinler önce başka fontla çizilip sonra değişiyordu.
+  static const String jakarta = 'PlusJakartaSans';
+
+  /// DM Serif'te ₺ işareti yok; fiyatlarda Plus Jakarta'ya düşülür.
+  static const String serif = 'DMSerifDisplay';
+
+  static TextStyle get displayLarge => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 36,
     fontWeight: FontWeight.w400,
     color: AppColors.textPrimary,
@@ -45,7 +55,9 @@ class AppTextStyles {
     letterSpacing: -0.5,
   );
 
-  static TextStyle get displayMedium => GoogleFonts.dmSerifDisplay(
+  static TextStyle get displayMedium => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 28,
     fontWeight: FontWeight.w400,
     color: AppColors.textPrimary,
@@ -53,14 +65,17 @@ class AppTextStyles {
     letterSpacing: -0.3,
   );
 
-  static TextStyle get headingLarge => GoogleFonts.dmSerifDisplay(
+  static TextStyle get headingLarge => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 22,
     fontWeight: FontWeight.w400,
     color: AppColors.textPrimary,
     height: 1.3,
   );
 
-  static TextStyle get headingMedium => GoogleFonts.plusJakartaSans(
+  static TextStyle get headingMedium => TextStyle(
+    fontFamily: jakarta,
     fontSize: 17,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -68,21 +83,24 @@ class AppTextStyles {
     letterSpacing: -0.2,
   );
 
-  static TextStyle get bodyLarge => GoogleFonts.plusJakartaSans(
+  static TextStyle get bodyLarge => TextStyle(
+    fontFamily: jakarta,
     fontSize: 15,
     fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
     height: 1.5,
   );
 
-  static TextStyle get bodyMedium => GoogleFonts.plusJakartaSans(
+  static TextStyle get bodyMedium => TextStyle(
+    fontFamily: jakarta,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
     height: 1.55,
   );
 
-  static TextStyle get bodySmall => GoogleFonts.plusJakartaSans(
+  static TextStyle get bodySmall => TextStyle(
+    fontFamily: jakarta,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     color: AppColors.textMuted,
@@ -90,41 +108,50 @@ class AppTextStyles {
     letterSpacing: 0.1,
   );
 
-  static TextStyle get labelLarge => GoogleFonts.plusJakartaSans(
+  static TextStyle get labelLarge => TextStyle(
+    fontFamily: jakarta,
     fontSize: 15,
     fontWeight: FontWeight.w700,
     color: AppColors.textOnPrimary,
     letterSpacing: 0.1,
   );
 
-  static TextStyle get labelMedium => GoogleFonts.plusJakartaSans(
+  static TextStyle get labelMedium => TextStyle(
+    fontFamily: jakarta,
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: AppColors.textSecondary,
     letterSpacing: 0.8,
   );
 
-  static TextStyle get price => GoogleFonts.dmSerifDisplay(
+  static TextStyle get price => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 26,
     fontWeight: FontWeight.w400,
     color: AppColors.primary,
     height: 1.1,
   );
 
-  static TextStyle get priceSmall => GoogleFonts.dmSerifDisplay(
+  static TextStyle get priceSmall => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 18,
     fontWeight: FontWeight.w400,
     color: AppColors.primary,
   );
 
-  static TextStyle get caption => GoogleFonts.plusJakartaSans(
+  static TextStyle get caption => TextStyle(
+    fontFamily: jakarta,
     fontSize: 11,
     fontWeight: FontWeight.w500,
     color: AppColors.textMuted,
     letterSpacing: 0.5,
   );
 
-  static TextStyle get appBarTitle => GoogleFonts.dmSerifDisplay(
+  static TextStyle get appBarTitle => TextStyle(
+    fontFamily: serif,
+    fontFamilyFallback: const [jakarta],
     fontSize: 24,
     fontWeight: FontWeight.w400,
     color: AppColors.textPrimary,
@@ -136,6 +163,9 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      // Stil verilmemiş metinler (diyaloglar, düğmeler, takvim) Roboto'ya
+      // düşüyordu; uygulamanın geri kalanıyla aynı aileyi kullansın.
+      fontFamily: AppTextStyles.jakarta,
       scaffoldBackgroundColor: AppColors.background,
 
       colorScheme: const ColorScheme.light(

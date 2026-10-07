@@ -13,10 +13,14 @@ class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback onTap;
 
+  /// Gösterilecek fiyat türü (ana sayfadaki Günlük / Aylık / Yıllık).
+  final FiyatTuru fiyatTuru;
+
   const VehicleCard({
     super.key,
     required this.vehicle,
     required this.onTap,
+    this.fiyatTuru = FiyatTuru.gunluk,
   });
 
   @override
@@ -55,7 +59,7 @@ class VehicleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _CardHeader(vehicle: vehicle),
+                  _CardHeader(vehicle: vehicle, fiyatTuru: fiyatTuru),
                   const SizedBox(height: 12),
                   _SpecsRow(vehicle: vehicle),
                   const SizedBox(height: 14),
@@ -252,7 +256,7 @@ class _CategoryBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.radiusS),
       ),
       child: Text(
-        category.toUpperCase(),
+        AppHelpers.buyukHarf(AppConstants.kategoriAdi(category)),
         style: AppTextStyles.caption.copyWith(
           color: AppColors.primary,
           fontWeight: FontWeight.w700,
@@ -265,11 +269,16 @@ class _CategoryBadge extends StatelessWidget {
 
 class _CardHeader extends StatelessWidget {
   final Vehicle vehicle;
+  final FiyatTuru fiyatTuru;
 
-  const _CardHeader({required this.vehicle});
+  const _CardHeader({required this.vehicle, required this.fiyatTuru});
 
   @override
   Widget build(BuildContext context) {
+    // Seçilen türde fiyat tanımlı değilse başka bir fiyata düşülmez
+    // (müşteri yıllık bakarken günlük fiyatı yıllık sanmasın); teklif
+    // istenmesi söylenir.
+    final fiyat = vehicle.fiyat(fiyatTuru);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,7 +287,7 @@ class _CardHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                vehicle.brand.toUpperCase(),
+                AppHelpers.buyukHarf(vehicle.brand),
                 style: AppTextStyles.labelMedium.copyWith(
                   color: AppColors.primary,
                   letterSpacing: 1.2,
@@ -299,11 +308,14 @@ class _CardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              AppHelpers.formatPrice(vehicle.dailyPrice),
-              style: AppTextStyles.priceSmall,
+              fiyat > 0 ? AppHelpers.formatPrice(fiyat) : 'Teklif alın',
+              style: fiyat > 0
+                  ? AppTextStyles.priceSmall
+                  : AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
             Text(
-              'Günlük',
+              fiyatTuru.etiket,
               style: AppTextStyles.caption,
             ),
           ],
@@ -326,10 +338,12 @@ class _SpecsRow extends StatelessWidget {
       children: [
         _SpecChip(
           icon: Icons.settings_outlined,
-          label: vehicle.transmissionShort,
+          label: vehicle.transmission == 'Manuel' ? 'Manuel' : 'Otomatik',
         ),
         _SpecChip(
-          emoji: vehicle.fuelIcon,
+          icon: vehicle.fuelType == 'Elektrik'
+              ? Icons.bolt_rounded
+              : Icons.local_gas_station_outlined,
           label: vehicle.fuelType,
         ),
         _SpecChip(
@@ -346,11 +360,10 @@ class _SpecsRow extends StatelessWidget {
 }
 
 class _SpecChip extends StatelessWidget {
-  final IconData? icon;
-  final String? emoji;
+  final IconData icon;
   final String label;
 
-  const _SpecChip({this.icon, this.emoji, required this.label});
+  const _SpecChip({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -363,13 +376,8 @@ class _SpecChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (emoji != null) ...[
-            Text(emoji!, style: const TextStyle(fontSize: 11)),
-            const SizedBox(width: 4),
-          ] else if (icon != null) ...[
-            Icon(icon, size: 12, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
-          ],
+          Icon(icon, size: 13, color: AppColors.primary),
+          const SizedBox(width: 4),
           Text(
             label,
             style: AppTextStyles.bodySmall.copyWith(
@@ -399,7 +407,7 @@ class _CardFooter extends StatelessWidget {
               vehicle.features,
               // Üstteki rozetlerde zaten görünenler; tekrar edilmesin.
               zatenGosterilen: {
-                vehicle.transmissionShort,
+                vehicle.transmission == 'Manuel' ? 'Manuel' : 'Otomatik',
                 vehicle.fuelType,
                 '${vehicle.seats} koltuk',
                 '${vehicle.year}',

@@ -2,6 +2,7 @@ import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:car_rental_mvp/ui/screens/vehicle_detail_screen.dart';
+import 'package:car_rental_mvp/ui/widgets/giris_gerekli.dart';
 import 'package:car_rental_mvp/ui/widgets/vehicle_card.dart';
 import 'package:flutter/material.dart';
 
@@ -23,6 +24,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   /// Daha önce sorgu doğrudan build() içinde oluşturuluyordu; bu yüzden her
   /// yeniden çizimde Firestore'a yeni bir istek gidiyordu.
   Future<List<Vehicle>>? _vehiclesFuture;
+
+  /// Favori kimlikleri akışı bir kez kurulur. Eskiden build() içinde
+  /// kuruluyordu; her yeniden çizimde abonelik kapanıp yeniden açılıyor ve
+  /// liste bir an yükleme göstergesine dönüyordu.
+  late final Stream<List<String>>? _favoriAkisi = _authService.currentUser == null
+      ? null
+      : _firestoreService.getFavoriteIdsStream(_authService.currentUser!.uid);
   List<String> _sonFavoriIds = const [];
 
   Future<List<Vehicle>> _araclariGetir(List<String> favoriteIds) {
@@ -40,17 +48,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final uid = _authService.currentUser?.uid;
 
-    if (uid == null) {
+    if (uid == null || _favoriAkisi == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Favorilerim')),
-        body: const Center(child: Text('Giriş yapmanız gerekiyor.')),
+        body: const SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: GirisGerekli(
+            ikon: Icons.favorite_border_rounded,
+            baslik: 'Favorilerinizi kaydedin',
+            aciklama: 'Beğendiğiniz araçları kalp simgesiyle kaydetmek ve '
+                'buradan kolayca ulaşmak için giriş yapın.',
+          ),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Favorilerim')),
       body: StreamBuilder<List<String>>(
-        stream: _firestoreService.getFavoriteIdsStream(uid),
+        stream: _favoriAkisi,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

@@ -5,6 +5,7 @@ import 'package:car_rental_mvp/core/constants/app_constants.dart';
 import 'package:car_rental_mvp/core/constants/kvkk_envanter.dart';
 import 'package:car_rental_mvp/core/constants/legal_texts.dart';
 import 'package:car_rental_mvp/core/utils/helpers.dart';
+import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/ui/widgets/filter_bottom_sheet.dart';
 
 void main() {
@@ -82,6 +83,54 @@ void main() {
       final baslangic = DateTime(2026, 7, 1);
       final bitis = DateTime(2026, 7, 4);
       expect(AppHelpers.totalPrice(1500, baslangic, bitis), 4500);
+    });
+  });
+
+  group('Türkçe görünüm', () {
+    test('büyük harf Türkçe kurallara uyar', () {
+      expect(AppHelpers.buyukHarf('Ticari / Van'), 'TİCARİ / VAN');
+      expect(AppHelpers.buyukHarf('Işık'), 'IŞIK');
+    });
+
+    test('eski İngilizce yakıt değerleri Türkçeye çevrilir', () {
+      expect(Vehicle.yakitNormal('Diesel'), 'Dizel');
+      expect(Vehicle.yakitNormal('Gasoline'), 'Benzin');
+      expect(Vehicle.yakitNormal('Dizel'), 'Dizel');
+      expect(Vehicle.yakitNormal(null), 'Benzin');
+      // Yönetim formundaki her seçenek kendine çevrilmeli; aksi hâlde
+      // açılır liste kayıtlı değeri bulamaz.
+      for (final y in Vehicle.yakitTurleri) {
+        expect(Vehicle.yakitNormal(y), y);
+      }
+    });
+
+    test('fiyat türü tanımsızsa başka fiyata düşülmez', () {
+      const arac = Vehicle(
+        id: 'x',
+        name: 'Clio',
+        brand: 'Renault',
+        category: 'Hatchback',
+        imagePath: '',
+        galleryPaths: [],
+        dailyPrice: 1500,
+        monthlyPrice: 36000,
+        transmission: 'Manuel',
+        fuelType: 'Dizel',
+        seats: 5,
+        engineSize: '',
+        year: 2020,
+        features: [],
+      );
+      expect(arac.fiyat(FiyatTuru.gunluk), 1500);
+      expect(arac.fiyat(FiyatTuru.aylik), 36000);
+      // Yıllık fiyat girilmedi: 0 → kartta "Teklif alın". Günlük fiyatın
+      // yıllık diye gösterilmesi müşteriyi yanıltırdı.
+      expect(arac.fiyat(FiyatTuru.yillik), 0);
+    });
+
+    test('kategori adları Türkçe gösterilir', () {
+      expect(AppConstants.kategoriAdi('Luxury'), 'Lüks');
+      expect(AppConstants.kategoriAdi('SUV'), 'SUV');
     });
   });
 

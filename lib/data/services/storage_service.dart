@@ -24,6 +24,36 @@ class StorageService {
     return await ref.getDownloadURL();
   }
 
+  /// Blog yazısının kapak görselini yükler ve URL döndürür.
+  ///
+  /// Araç görselleriyle aynı kurallar geçerlidir (yalnızca yönetici, en
+  /// fazla 5 MB, yalnızca görsel); bkz. storage.rules → blog/.
+  Future<String> uploadBlogImage({
+    required String postId,
+    required String fileName,
+    required Uint8List fileBytes,
+  }) async {
+    final ref = _storage.ref('blog/$postId/$fileName');
+    await ref.putData(
+      fileBytes,
+      SettableMetadata(
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000',
+      ),
+    );
+    return await ref.getDownloadURL();
+  }
+
+  /// Blog yazısı silinince kapak görseli Storage'da öksüz kalmasın.
+  Future<void> deleteBlogImages(String postId) async {
+    try {
+      final listResult = await _storage.ref('blog/$postId').listAll();
+      await Future.wait(listResult.items.map((item) => item.delete()));
+    } catch (e) {
+      debugPrint('Blog görselleri silinemedi ($postId): $e');
+    }
+  }
+
   /// Bir araç klasöründeki tüm görselleri sil.
   ///
   /// Silmeler paralel yapılır; tek tek beklemek 10+ görselli bir araçta

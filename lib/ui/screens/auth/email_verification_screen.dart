@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/auth/login_screen.dart';
-import 'package:car_rental_mvp/ui/screens/home_screen.dart';
+import 'package:car_rental_mvp/ui/screens/ana_kabuk.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -70,7 +70,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       final isAdmin = await _authService.isCurrentUserAdmin();
       if (!mounted) return;
       context.sayfayaSifirla(
-        isAdmin ? const AdminDashboardScreen() : const HomeScreen(),
+        isAdmin ? const AdminDashboardScreen() : const AnaKabuk(),
       );
     }
   }

@@ -25,53 +25,54 @@ class _CampaignSectionState extends State<CampaignSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Kampanyalar', style: AppTextStyles.headingMedium),
-              TextButton(
-                onPressed: widget.onViewAll,
-                child: Text('Hepsini Gör',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold)),
+    return StreamBuilder<List<Campaign>>(
+      stream: _campaignsStream,
+      builder: (context, snapshot) {
+        final campaigns = snapshot.data ?? const <Campaign>[];
+        final yukleniyor = snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData;
+
+        // Hata veya boş liste: bölüm hiç gösterilmez. Eskiden ham hata metni
+        // ("Hata: [cloud_firestore/...]") müşteriye gösteriliyordu.
+        if (snapshot.hasError || (!yukleniyor && campaigns.isEmpty)) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Kampanyalar', style: AppTextStyles.headingMedium),
+                  TextButton(
+                    onPressed: widget.onViewAll,
+                    child: Text('Tümü',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 200,
-          child: StreamBuilder<List<Campaign>>(
-            stream: _campaignsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Hata: ${snapshot.error}'));
-              }
-              final campaigns = snapshot.data ?? [];
-              if (campaigns.isEmpty) {
-                return const Center(child: Text('Henüz kampanya yok.'));
-              }
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: 16),
-                itemCount: campaigns.length,
-                itemBuilder: (context, index) {
-                  return CampaignCard(campaign: campaigns[index]);
-                },
-              );
-            },
-          ),
-        ),
-      ],
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 190,
+              child: yukleniyor
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(left: 16),
+                      itemCount: campaigns.length,
+                      itemBuilder: (context, index) =>
+                          CampaignCard(campaign: campaigns[index]),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

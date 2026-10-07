@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/kvkk_envanter.dart';
 import '../models/vehicle.dart';
+import '../models/blog_post.dart';
 import '../models/campaign_model.dart';
 import '../models/user_model.dart';
 import '../models/pickup_location_model.dart';
@@ -143,6 +144,71 @@ class FirestoreService {
   /// Kampanya sil
   Future<void> deleteCampaign(String id) async {
     await _db.collection('campaigns').doc(id).delete();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // BLOG (bilgilendirme yazıları)
+  // ═══════════════════════════════════════════════════════
+
+  /// Yayındaki yazılar, en yeni önce.
+  ///
+  /// Sorgudaki `isPublished == true` şartı ZORUNLUDUR: güvenlik kuralı
+  /// taslakları misafire kapatıyor ve Firestore, kuralın reddedebileceği
+  /// dokümanları kapsayan bir sorguyu bütünüyle reddeder. Sıralama Dart
+  /// tarafında yapılır; böylece bileşik dizin gerekmez.
+  Stream<List<BlogPost>> getYayindakiBlogYazilari() {
+    return _db
+        .collection('blog_posts')
+        .where('isPublished', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => _yeniOnce(
+            snapshot.docs.map((doc) => BlogPost.fromFirestore(doc)).toList()));
+  }
+
+  /// Yönetim paneli: taslaklar dâhil tüm yazılar.
+  Stream<List<BlogPost>> getTumBlogYazilari() {
+    return _db.collection('blog_posts').snapshots().map((snapshot) =>
+        _yeniOnce(
+            snapshot.docs.map((doc) => BlogPost.fromFirestore(doc)).toList()));
+  }
+
+  static List<BlogPost> _yeniOnce(List<BlogPost> yazilar) {
+    DateTime tarih(BlogPost y) =>
+        y.publishedAt ?? y.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return yazilar..sort((a, b) => tarih(b).compareTo(tarih(a)));
+  }
+
+  /// Kapak görseli kimliğe göre yüklendiği için kimlik yazmadan önce üretilir.
+  String yeniBlogKimligi() => _db.collection('blog_posts').doc().id;
+
+  /// Yazıyı oluşturur veya günceller.
+  ///
+  /// [ilkYayin] true ise yayın tarihi sunucu saatiyle atanır. Yazı sonradan
+  /// taslağa alınıp yeniden yayınlanırsa ilk yayın tarihi korunur.
+  Future<void> blogKaydet(
+    String id,
+    BlogPost yazi, {
+    required bool yeni,
+    required bool ilkYayin,
+  }) async {
+    final veri = {
+      ...yazi.toFirestore(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      if (yeni) 'createdAt': FieldValue.serverTimestamp(),
+      if (ilkYayin) 'publishedAt': FieldValue.serverTimestamp(),
+    };
+    final ref = _db.collection('blog_posts').doc(id);
+    if (yeni) {
+      await ref.set(veri);
+    } else {
+      await ref.update(veri);
+    }
+  }
+
+  /// Yazıyı ve kapak görselini siler.
+  Future<void> blogSil(String id) async {
+    await _db.collection('blog_posts').doc(id).delete();
+    await _storage.deleteBlogImages(id);
   }
 
   // ═══════════════════════════════════════════════════════

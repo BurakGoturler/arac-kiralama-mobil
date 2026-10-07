@@ -32,6 +32,16 @@ service firebase.storage {
       allow delete: if yonetici();
     }
 
+    // ── Blog kapak görselleri ────────────────────────────────────
+    // Araç görselleriyle aynı kural: okuma serbest, yazma yöneticide.
+    match /blog/{postId}/{fileName} {
+      allow read: if true;
+      allow write: if yonetici()
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if yonetici();
+    }
+
     // ── Diğer her şey ────────────────────────────────────────────
     // Denetimde tespit edilen "herkes dosya listeleyebiliyor" durumunu kapatır.
     match /{allPaths=**} {

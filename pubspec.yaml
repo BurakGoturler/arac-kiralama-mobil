@@ -17,7 +17,6 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  google_fonts: ^6.2.1
   # flutter_svg, lottie ve font_awesome_flutter kaldırıldı —
   # kod tabanında hiçbir yerde kullanılmıyorlardı, yalnızca uygulama
   # boyutunu ve derleme süresini artırıyorlardı.
@@ -57,3 +56,22 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/logo-uzun.png
+
+  # Yazı tipleri pakete gömülü (SIL Open Font License). Ağırlıklar
+  # kodda kullanılanlarla sınırlı.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
+    - family: DMSerifDisplay
+      fonts:
+        - asset: assets/fonts/DMSerifDisplay-Regular.ttf

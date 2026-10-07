@@ -194,7 +194,7 @@ class _DateTile extends StatelessWidget {
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
-                    label.toUpperCase(),
+                    AppHelpers.buyukHarf(label),
                     style: AppTextStyles.caption.copyWith(
                       color: vurgu,
                       fontWeight: FontWeight.w700,

@@ -59,6 +59,11 @@ class AppHelpers {
   static int? tamSayiCoz(String? girdi) => sayiCoz(girdi)?.round();
 
   // ── Date Range Helpers ────────────────────────────────────
+  /// Türkçe kurallarla büyük harf. Dart'ın toUpperCase'i dilden bağımsızdır:
+  /// "Ticari" → "TICARI" yazıyordu (doğrusu "TİCARİ").
+  static String buyukHarf(String metin) =>
+      metin.replaceAll('i', 'İ').replaceAll('ı', 'I').toUpperCase();
+
   static int daysBetween(DateTime start, DateTime end) {
     return end.difference(start).inDays;
   }

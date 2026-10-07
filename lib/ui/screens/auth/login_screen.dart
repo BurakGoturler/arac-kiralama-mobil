@@ -2,7 +2,7 @@ import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/ui/screens/auth/register_screen.dart';
 import 'package:car_rental_mvp/ui/screens/auth/email_verification_screen.dart';
 import 'package:car_rental_mvp/ui/screens/auth/mfa_challenge_screen.dart';
-import 'package:car_rental_mvp/ui/screens/home_screen.dart';
+import 'package:car_rental_mvp/ui/screens/ana_kabuk.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       context.sayfayaSifirla(
-        isAdmin ? const AdminDashboardScreen() : const HomeScreen(),
+        isAdmin ? const AdminDashboardScreen() : const AnaKabuk(),
       );
     } catch (e) {
       if (!mounted) return;
@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _continueAsGuest() {
-    context.sayfayaSifirla(const HomeScreen());
+    context.sayfayaSifirla(const AnaKabuk());
   }
 
   @override

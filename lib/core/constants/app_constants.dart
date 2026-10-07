@@ -94,4 +94,19 @@ class AppConstants {
     'Van',
     'Sports',
   ];
+
+  /// Kategorinin müşteriye gösterilen adı. Kayıtlar eski İngilizce
+  /// değerlerle tutuluyor ('Luxury', 'Sports'); kartta "LUXURY" yazıyordu.
+  static String kategoriAdi(String kategori) {
+    switch (kategori) {
+      case 'Luxury':
+        return 'Lüks';
+      case 'Sports':
+        return 'Spor';
+      case 'Van':
+        return 'Ticari / Van';
+      default:
+        return kategori;
+    }
+  }
 }

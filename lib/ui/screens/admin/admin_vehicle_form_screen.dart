@@ -32,6 +32,8 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
   late TextEditingController _nameController;
   late TextEditingController _brandController;
   late TextEditingController _priceController;
+  late TextEditingController _monthlyPriceController;
+  late TextEditingController _yearlyPriceController;
   late TextEditingController _seatsController;
   late TextEditingController _engineSizeController;
   late TextEditingController _yearController;
@@ -39,7 +41,7 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
 
   String _selectedCategory = 'SUV';
   String _selectedTransmission = 'Otomatik';
-  String _selectedFuelType = 'Gasoline';
+  String _selectedFuelType = 'Benzin';
   bool _isFeatured = false;
   bool _isAvailable = true;
 
@@ -62,6 +64,14 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
     _brandController = TextEditingController(text: v?.brand ?? '');
     _priceController =
         TextEditingController(text: v != null ? v.dailyPrice.toInt().toString() : '');
+    _monthlyPriceController = TextEditingController(
+        text: v != null && v.monthlyPrice > 0
+            ? v.monthlyPrice.toInt().toString()
+            : '');
+    _yearlyPriceController = TextEditingController(
+        text: v != null && v.yearlyPrice > 0
+            ? v.yearlyPrice.toInt().toString()
+            : '');
     _seatsController =
         TextEditingController(text: v?.seats.toString() ?? '5');
     _engineSizeController =
@@ -72,9 +82,15 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         TextEditingController(text: v?.features.join(', ') ?? '');
 
     if (v != null) {
-      _selectedCategory = v.category;
-      _selectedTransmission = v.transmission;
-      _selectedFuelType = v.fuelType;
+      // Açılır listeler, listede olmayan bir değerle açılınca alanı boş
+      // gösteriyor (debug'da hata ekranı). Eski/elle girilmiş değerler
+      // listedeki bir karşılığa düşürülür.
+      _selectedCategory = AppConstants.categories.skip(1).contains(v.category)
+          ? v.category
+          : 'Sedan';
+      _selectedTransmission =
+          v.transmission == 'Manuel' ? 'Manuel' : 'Otomatik';
+      _selectedFuelType = Vehicle.yakitNormal(v.fuelType);
       _isFeatured = v.isFeatured;
       _isAvailable = v.isAvailable;
       _existingImageUrl = v.imagePath;
@@ -87,6 +103,8 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
     _nameController.dispose();
     _brandController.dispose();
     _priceController.dispose();
+    _monthlyPriceController.dispose();
+    _yearlyPriceController.dispose();
     _seatsController.dispose();
     _engineSizeController.dispose();
     _yearController.dispose();
@@ -197,6 +215,8 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
         'brand': _brandController.text.trim(),
         'category': _selectedCategory,
         'dailyPrice': AppHelpers.sayiCoz(_priceController.text) ?? 0,
+        'monthlyPrice': AppHelpers.sayiCoz(_monthlyPriceController.text) ?? 0,
+        'yearlyPrice': AppHelpers.sayiCoz(_yearlyPriceController.text) ?? 0,
         'transmission': _selectedTransmission,
         'fuelType': _selectedFuelType,
         'seats': AppHelpers.tamSayiCoz(_seatsController.text) ?? 5,
@@ -449,6 +469,27 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
     );
   }
 
+  Widget _istegeBagliFiyat(
+      TextEditingController kontrolcu, String etiket, String ornek) {
+    return TextFormField(
+      controller: kontrolcu,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+      decoration: InputDecoration(
+        labelText: etiket,
+        hintText: ornek,
+        border: const OutlineInputBorder(),
+      ),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return null;
+        final fiyat = AppHelpers.sayiCoz(v);
+        if (fiyat == null) return 'Geçerli bir sayı girin';
+        if (fiyat < 0) return 'Negatif olamaz';
+        return null;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -566,6 +607,31 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // ── Aylık ve yıllık fiyat ──
+                  // İsteğe bağlı. Boş bırakılan tür için müşteri kartında
+                  // "Teklif alın" yazar.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _istegeBagliFiyat(
+                            _monthlyPriceController, 'Aylık Fiyat (₺)', '36000'),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _istegeBagliFiyat(
+                            _yearlyPriceController, 'Yıllık Fiyat (₺)', '400000'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Aylık ve yıllık fiyat isteğe bağlıdır; boş bırakılırsa '
+                    'müşteriye "Teklif alın" gösterilir.',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+
                   // ── Vites & Yakıt ──
                   Row(
                     children: [
@@ -592,12 +658,12 @@ class _AdminVehicleFormScreenState extends State<AdminVehicleFormScreen> {
                             labelText: 'Yakıt Tipi',
                             border: OutlineInputBorder(),
                           ),
-                          items: ['Gasoline', 'Diesel', 'Electric', 'Hybrid']
+                          items: Vehicle.yakitTurleri
                               .map((f) =>
                               DropdownMenuItem(value: f, child: Text(f)))
                               .toList(),
                           onChanged: (v) => setState(
-                                  () => _selectedFuelType = v ?? 'Gasoline'),
+                                  () => _selectedFuelType = v ?? 'Benzin'),
                         ),
                       ),
                     ],

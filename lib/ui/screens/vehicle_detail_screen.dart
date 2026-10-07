@@ -47,10 +47,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     _endDate = widget.endDate;
   }
 
-  int get _totalDays =>
-      _startDate != null && _endDate != null
-          ? AppHelpers.daysBetween(_startDate!, _endDate!)
-          : 0;
+  int get _totalDays => _startDate != null && _endDate != null
+      ? AppHelpers.daysBetween(_startDate!, _endDate!)
+      : 0;
 
   double get _totalPrice => _totalDays * v.dailyPrice;
 
@@ -69,9 +68,8 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     // rezervasyon butonu hiçbir açıklama yapmadan kilitli kalıyordu.
     // Kullanıcı nedenini anlayamıyordu. Artık seçilemeyen gün takvimde
     // baştan pasif görünüyor.
-    final firstDate = isStart
-        ? now
-        : (_startDate?.add(const Duration(days: 1)) ?? now);
+    final firstDate =
+        isStart ? now : (_startDate?.add(const Duration(days: 1)) ?? now);
     final initialDate = isStart
         ? (_startDate ?? now)
         : (_endDate ?? firstDate.add(const Duration(days: 1)));
@@ -83,17 +81,16 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           : initialDate,
       firstDate: firstDate,
       lastDate: DateTime(now.year + 1),
-      builder: (context, child) =>
-          Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: AppColors.primary,
-                onPrimary: Colors.white,
-                surface: Colors.white,
-              ),
-            ),
-            child: child!,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            surface: Colors.white,
           ),
+        ),
+        child: child!,
+      ),
     );
 
     if (picked != null) {
@@ -124,7 +121,8 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           ),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       );
@@ -366,42 +364,45 @@ class _DetailSliverAppBar extends StatelessWidget {
                 ),
               )
             else
-            PageView.builder(
-              itemCount: vehicle.galleryPaths.length,
-              onPageChanged: onImageChange,
-              itemBuilder: (_, i) {
-                final imagePath = vehicle.galleryPaths[i];
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => context.sayfayaGit(
-                      FullScreenImageViewer(
-                        imagePaths: vehicle.galleryPaths,
-                        initialIndex: i,
-                      ),
-                      tamEkranDiyalog: true,
-                    ),
-                    child: Hero(
-                      tag: imagePath,
-                      child: CachedNetworkImage(
-                        imageUrl: imagePath,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        placeholder: (context, url) => Container(
-                          color: AppColors.background,
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              PageView.builder(
+                itemCount: vehicle.galleryPaths.length,
+                onPageChanged: onImageChange,
+                itemBuilder: (_, i) {
+                  final imagePath = vehicle.galleryPaths[i];
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => context.sayfayaGit(
+                        FullScreenImageViewer(
+                          imagePaths: vehicle.galleryPaths,
+                          initialIndex: i,
                         ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
-                          child: const Icon(Icons.directions_car, size: 64, color: AppColors.textMuted),
+                        tamEkranDiyalog: true,
+                      ),
+                      child: Hero(
+                        tag: imagePath,
+                        child: CachedNetworkImage(
+                          imageUrl: imagePath,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.background,
+                            child: const Center(
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.background,
+                            child: const Icon(Icons.directions_car,
+                                size: 64, color: AppColors.textMuted),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
@@ -507,8 +508,12 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                     child: CachedNetworkImage(
                       imageUrl: widget.imagePaths[index],
                       fit: BoxFit.contain,
-                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(
+                          Icons.broken_image,
+                          color: Colors.white54,
+                          size: 48),
                     ),
                   ),
                 ),
@@ -537,7 +542,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                     width: _currentIndex == i ? 12 : 8,
                     height: _currentIndex == i ? 12 : 8,
                     decoration: BoxDecoration(
-                      color: _currentIndex == i ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                      color: _currentIndex == i
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -558,8 +565,8 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(
-          AppConstants.paddingM, AppConstants.paddingM, AppConstants.paddingM, 0),
+      margin: const EdgeInsets.fromLTRB(AppConstants.paddingM,
+          AppConstants.paddingM, AppConstants.paddingM, 0),
       padding: const EdgeInsets.all(AppConstants.paddingM),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -596,7 +603,7 @@ class _VehicleInfoSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      vehicle.brand.toUpperCase(),
+                      AppHelpers.buyukHarf(vehicle.brand),
                       style: AppTextStyles.labelMedium.copyWith(
                         color: AppColors.primary,
                         letterSpacing: 1.4,
@@ -613,11 +620,11 @@ class _VehicleInfoSection extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppColors.background,
                             borderRadius:
-                            BorderRadius.circular(AppConstants.radiusS),
+                                BorderRadius.circular(AppConstants.radiusS),
                           ),
                           child: Text(vehicle.category,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w600)),
+                              style: AppTextStyles.bodySmall
+                                  .copyWith(fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -642,6 +649,25 @@ class _VehicleInfoSection extends StatelessWidget {
                       color: AppColors.textMuted,
                     ),
                   ),
+                  for (final tur in [FiyatTuru.aylik, FiyatTuru.yillik])
+                    if (vehicle.fiyat(tur) > 0) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${tur.etiket} ${AppHelpers.formatPrice(vehicle.fiyat(tur))}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                 ],
               ),
             ],
@@ -681,9 +707,7 @@ class _SpecsGridSection extends StatelessWidget {
           label: 'Koltuk',
           value: '${vehicle.seats} koltuk'),
       _SpecItem(
-          icon: Icons.speed_rounded,
-          label: 'Motor',
-          value: vehicle.engineSize),
+          icon: Icons.speed_rounded, label: 'Motor', value: vehicle.engineSize),
     ].where((s) => s.value.trim().isNotEmpty).toList();
 
     return _SectionCard(
@@ -695,10 +719,12 @@ class _SpecsGridSection extends StatelessWidget {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: specs.map((s) => SizedBox(
-              width: (MediaQuery.of(context).size.width - 80) / 2,
-              child: _SpecGridCell(spec: s),
-            )).toList(),
+            children: specs
+                .map((s) => SizedBox(
+                      width: (MediaQuery.of(context).size.width - 80) / 2,
+                      child: _SpecGridCell(spec: s),
+                    ))
+                .toList(),
           ),
         ],
       ),
@@ -711,7 +737,8 @@ class _SpecItem {
   final String label;
   final String value;
 
-  const _SpecItem({required this.icon, required this.label, required this.value});
+  const _SpecItem(
+      {required this.icon, required this.label, required this.value});
 }
 
 class _SpecGridCell extends StatelessWidget {
@@ -773,14 +800,12 @@ class _FeaturesSection extends StatelessWidget {
             runSpacing: 8,
             children: vehicle.features
                 .map(
-                  (f) =>
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 7),
+                  (f) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: AppColors.primaryLight,
-                      borderRadius:
-                      BorderRadius.circular(AppConstants.radiusS),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusS),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -798,7 +823,7 @@ class _FeaturesSection extends StatelessWidget {
                       ],
                     ),
                   ),
-            )
+                )
                 .toList(),
           ),
         ],
@@ -857,10 +882,7 @@ class _ReservationBar extends StatelessWidget {
         AppConstants.paddingM,
         AppConstants.paddingM,
         AppConstants.paddingM,
-        MediaQuery
-            .of(context)
-            .padding
-            .bottom + AppConstants.paddingM,
+        MediaQuery.of(context).padding.bottom + AppConstants.paddingM,
       ),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -922,9 +944,6 @@ class _ReservationBar extends StatelessWidget {
       ),
     );
   }
-
-
-
 }
 
 class _ReservationFormSheet extends StatefulWidget {
@@ -1094,280 +1113,301 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
-        20, 20, 20,
+        20,
+        20,
+        20,
         MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.textMuted.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text('Rezervasyon Onayı',
-                style: AppTextStyles.headingMedium, textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Text(widget.vehicleName,
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              Text('Rezervasyon Onayı',
+                  style: AppTextStyles.headingMedium,
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              Text(widget.vehicleName,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.primary),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 20),
 
-            // ── Kullanıcı Bilgileri (salt okunur) ──
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(AppConstants.radiusM),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('Kişi Bilgileri', style: AppTextStyles.labelMedium),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'Ad Soyad', value: widget.user.fullName),
-                  _InfoRow(label: 'Telefon', value: widget.user.phone),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── T.C. Kimlik No (isteğe bağlı) ──
-            //
-            // Zorunlu değil: sözleşme şubede, kimlik belgesi ibraz edilerek
-            // kurulur. Talep aşamasında istemek ölçülülük ilkesine
-            // (KVKK m.4/2-ç) aykırı olur ve WhatsApp kanalında yurt dışına
-            // aktarılan veri kümesini gereksiz büyütür.
-            Row(
-              children: [
-                const Icon(Icons.badge_outlined, size: 18, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text('T.C. Kimlik No', style: AppTextStyles.labelMedium),
-                const SizedBox(width: 6),
-                Text('(isteğe bağlı)',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textMuted)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _tcController,
-              keyboardType: TextInputType.number,
-              maxLength: 11,
-              decoration: InputDecoration(
-                hintText: 'Boş bırakabilirsiniz',
-                counterText: '',
-                border: OutlineInputBorder(
+              // ── Kullanıcı Bilgileri (salt okunur) ──
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(AppConstants.radiusM),
                 ),
-              ),
-              validator: (v) {
-                final tc = (v ?? '').trim();
-                // Boş geçilebilir; yazıldıysa geçerli olmak zorunda.
-                if (tc.isEmpty) return null;
-                if (!AppHelpers.isValidTcNo(tc)) {
-                  return 'Geçersiz T.C. Kimlik Numarası';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 4),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.lock_outline, size: 13, color: AppColors.textMuted),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    LegalTexts.tcAlaniBilgisi,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textMuted),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person_outline,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text('Kişi Bilgileri',
+                            style: AppTextStyles.labelMedium),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _InfoRow(label: 'Ad Soyad', value: widget.user.fullName),
+                    _InfoRow(label: 'Telefon', value: widget.user.phone),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 16),
 
-            // ── Alım Yeri Seçimi ──
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text('Alım Yeri', style: AppTextStyles.labelMedium),
-              ],
-            ),
-            const SizedBox(height: 8),
-            StreamBuilder<List<PickupLocation>>(
-              stream: _firestoreService.getPickupLocationsStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                final locations = snapshot.data ?? [];
-
-                if (locations.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                    ),
-                    child: Text(
-                      'Henüz alım yeri tanımlanmamış. Lütfen yönetim ile iletişime geçin.',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                    ),
-                  );
-                }
-
-                // İlk yüklendiğinde ilk alım yerini otomatik seç
-                if (_selectedPickupLocation == null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      setState(() => _selectedPickupLocation = locations.first);
-                    }
-                  });
-                }
-
-                // Seçim durumu artık tek bir RadioGroup tarafından
-                // yönetiliyor; RadioListTile'ın kendi groupValue/onChanged
-                // parametreleri Flutter 3.32'de kullanımdan kaldırıldı.
-                return RadioGroup<String>(
-                  groupValue: _selectedPickupLocation?.id,
-                  onChanged: (secilenId) {
-                    if (secilenId == null) return;
-                    setState(() {
-                      _selectedPickupLocation =
-                          locations.firstWhere((l) => l.id == secilenId);
-                    });
-                  },
-                  child: Column(
-                  children: locations.map((loc) {
-                    final isSelected = _selectedPickupLocation?.id == loc.id;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.08)
-                            : AppColors.background,
-                        borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: RadioListTile<String>(
-                        value: loc.id,
-                        title: Text(loc.name,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600)),
-                        subtitle: loc.address.isNotEmpty
-                            ? Text(loc.address, style: AppTextStyles.caption)
-                            : null,
-                        activeColor: AppColors.primary,
-                        dense: true,
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                    );
-                  }).toList(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // ── İletişim Numarası Seçimi (tek numara varsa göstermiyoruz) ──
-            if (AppConstants.whatsappNumbers.length > 1) ...[
+              // ── T.C. Kimlik No (isteğe bağlı) ──
+              //
+              // Zorunlu değil: sözleşme şubede, kimlik belgesi ibraz edilerek
+              // kurulur. Talep aşamasında istemek ölçülülük ilkesine
+              // (KVKK m.4/2-ç) aykırı olur ve WhatsApp kanalında yurt dışına
+              // aktarılan veri kümesini gereksiz büyütür.
               Row(
                 children: [
-                  const Icon(Icons.phone_outlined, size: 18, color: AppColors.primary),
+                  const Icon(Icons.badge_outlined,
+                      size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  Text('İletişim Numarası', style: AppTextStyles.labelMedium),
+                  Text('T.C. Kimlik No', style: AppTextStyles.labelMedium),
+                  const SizedBox(width: 6),
+                  Text('(isteğe bağlı)',
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.textMuted)),
                 ],
               ),
               const SizedBox(height: 8),
-              RadioGroup<int>(
-                groupValue: _selectedNumberIndex,
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _selectedNumberIndex = v);
-                },
-                child: Column(
-                  children: List.generate(
-                    AppConstants.whatsappNumbers.length,
-                    (index) {
-                      final number = AppConstants.whatsappNumbers[index];
-                      return RadioListTile<int>(
-                        value: index,
-                        title: Text(number['label']!,
-                            style: AppTextStyles.bodyMedium),
-                        subtitle: Text(number['gorunum']!,
-                            style: AppTextStyles.bodySmall),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      );
-                    },
+              TextFormField(
+                controller: _tcController,
+                keyboardType: TextInputType.number,
+                maxLength: 11,
+                decoration: InputDecoration(
+                  hintText: 'Boş bırakabilirsiniz',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.radiusM),
                   ),
                 ),
+                validator: (v) {
+                  final tc = (v ?? '').trim();
+                  // Boş geçilebilir; yazıldıysa geçerli olmak zorunda.
+                  if (tc.isEmpty) return null;
+                  if (!AppHelpers.isValidTcNo(tc)) {
+                    return 'Geçersiz T.C. Kimlik Numarası';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lock_outline,
+                      size: 13, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      LegalTexts.tcAlaniBilgisi,
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ── Alım Yeri Seçimi ──
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text('Alım Yeri', style: AppTextStyles.labelMedium),
+                ],
               ),
               const SizedBox(height: 8),
-            ],
+              StreamBuilder<List<PickupLocation>>(
+                stream: _firestoreService.getPickupLocationsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-            // ── Gönderim ──
-            //
-            // Tek kanal WhatsApp'tır (bkz. _whatsappIleGonder). Açıklama
-            // metni LegalTexts'ten gelir; yasal metinlerle aynı cümledir.
-            SizedBox(
-              height: AppConstants.buttonHeight,
-              child: ElevatedButton.icon(
-                onPressed: _isSending ? null : _whatsappIleGonder,
-                icon: _isSending
-                    ? const SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.chat_rounded),
-                label: Text(_isSending ? 'Açılıyor...' : 'WhatsApp ile gönder'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.whatsapp,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.buttonRadius),
+                  final locations = snapshot.data ?? [];
+
+                  if (locations.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius:
+                            BorderRadius.circular(AppConstants.radiusM),
+                      ),
+                      child: Text(
+                        'Henüz alım yeri tanımlanmamış. Lütfen yönetim ile iletişime geçin.',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textMuted),
+                      ),
+                    );
+                  }
+
+                  // İlk yüklendiğinde ilk alım yerini otomatik seç
+                  if (_selectedPickupLocation == null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(
+                            () => _selectedPickupLocation = locations.first);
+                      }
+                    });
+                  }
+
+                  // Seçim durumu artık tek bir RadioGroup tarafından
+                  // yönetiliyor; RadioListTile'ın kendi groupValue/onChanged
+                  // parametreleri Flutter 3.32'de kullanımdan kaldırıldı.
+                  return RadioGroup<String>(
+                    groupValue: _selectedPickupLocation?.id,
+                    onChanged: (secilenId) {
+                      if (secilenId == null) return;
+                      setState(() {
+                        _selectedPickupLocation =
+                            locations.firstWhere((l) => l.id == secilenId);
+                      });
+                    },
+                    child: Column(
+                      children: locations.map((loc) {
+                        final isSelected =
+                            _selectedPickupLocation?.id == loc.id;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.08)
+                                : AppColors.background,
+                            borderRadius:
+                                BorderRadius.circular(AppConstants.radiusM),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: RadioListTile<String>(
+                            value: loc.id,
+                            title: Text(loc.name,
+                                style: AppTextStyles.bodyMedium
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            subtitle: loc.address.isNotEmpty
+                                ? Text(loc.address,
+                                    style: AppTextStyles.caption)
+                                : null,
+                            activeColor: AppColors.primary,
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // ── İletişim Numarası Seçimi (tek numara varsa göstermiyoruz) ──
+              if (AppConstants.whatsappNumbers.length > 1) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.phone_outlined,
+                        size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text('İletişim Numarası', style: AppTextStyles.labelMedium),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                RadioGroup<int>(
+                  groupValue: _selectedNumberIndex,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() => _selectedNumberIndex = v);
+                  },
+                  child: Column(
+                    children: List.generate(
+                      AppConstants.whatsappNumbers.length,
+                      (index) {
+                        final number = AppConstants.whatsappNumbers[index];
+                        return RadioListTile<int>(
+                          value: index,
+                          title: Text(number['label']!,
+                              style: AppTextStyles.bodyMedium),
+                          subtitle: Text(number['gorunum']!,
+                              style: AppTextStyles.bodySmall),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // ── Gönderim ──
+              //
+              // Tek kanal WhatsApp'tır (bkz. _whatsappIleGonder). Açıklama
+              // metni LegalTexts'ten gelir; yasal metinlerle aynı cümledir.
+              SizedBox(
+                height: AppConstants.buttonHeight,
+                child: ElevatedButton.icon(
+                  onPressed: _isSending ? null : _whatsappIleGonder,
+                  icon: _isSending
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.chat_rounded),
+                  label:
+                      Text(_isSending ? 'Açılıyor...' : 'WhatsApp ile gönder'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.whatsapp,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.buttonRadius),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              LegalTexts.rezervasyonKanalBilgisi,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
-            ),
-          ],
-        ),
+              const SizedBox(height: 6),
+              Text(
+                LegalTexts.rezervasyonKanalBilgisi,
+                textAlign: TextAlign.center,
+                style:
+                    AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1390,12 +1430,14 @@ class _InfoRow extends StatelessWidget {
           SizedBox(
             width: 80,
             child: Text('$label:',
-                style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+                style:
+                    AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
           ),
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
-              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+              style:
+                  AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -1439,7 +1481,8 @@ class _DetailFavoriteButton extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
               );
             }

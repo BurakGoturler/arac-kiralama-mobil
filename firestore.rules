@@ -137,6 +137,30 @@ service cloud.firestore {
       allow write: if yonetici();
     }
 
+    // ── blog_posts — bilgilendirme yazıları ──────────────────────
+    // Yayındaki yazıları herkes okur; taslakları yalnızca yönetici görür.
+    // Kişisel veri içermez. İstemci sorgusu `isPublished == true` şartını
+    // taşımak zorundadır, aksi hâlde misafir sorgusu bütünüyle reddedilir.
+    match /blog_posts/{id} {
+      allow read: if resource.data.isPublished == true || yonetici();
+
+      allow create, update: if yonetici()
+                    && request.resource.data.keys().hasOnly([
+                         'title', 'summary', 'content', 'coverImageUrl',
+                         'isPublished', 'createdAt', 'updatedAt', 'publishedAt'])
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0
+                    && request.resource.data.title.size() <= 120
+                    && request.resource.data.summary is string
+                    && request.resource.data.summary.size() <= 300
+                    && request.resource.data.content is string
+                    && request.resource.data.content.size() <= 20000
+                    && request.resource.data.coverImageUrl is string
+                    && request.resource.data.isPublished is bool;
+
+      allow delete: if yonetici();
+    }
+
     // ── whatsapp_logs — rezervasyon talep kayıtları ──────────────
     // ÖNEMLİ: Denetim öncesinde bu koleksiyona kimlik doğrulaması
     // olmadan kayıt eklenebiliyordu. Aşağıdaki kurallar bunu kapatır.

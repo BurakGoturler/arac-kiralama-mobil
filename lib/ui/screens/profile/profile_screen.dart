@@ -1,6 +1,7 @@
 import 'package:car_rental_mvp/data/models/user_model.dart';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
 import 'package:car_rental_mvp/data/services/firestore_service.dart';
+import 'package:car_rental_mvp/ui/screens/ana_kabuk.dart';
 import 'package:car_rental_mvp/ui/screens/auth/login_screen.dart';
 import 'package:car_rental_mvp/ui/screens/legal/legal_document_screen.dart';
 import 'package:car_rental_mvp/ui/screens/profile/change_password_screen.dart';
@@ -11,6 +12,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/legal_texts.dart';
 import '../../../core/navigation/app_page_route.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/helpers.dart';
 import '../../widgets/primary_button.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -256,6 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Çıkışta misafir olarak ana sayfaya dönülür; giriş ekranına
+  /// zorlanmaz, araçlar üyeliksiz de incelenebilir.
+  Future<void> _cikisYap() async {
+    await _authService.signOut();
+    if (mounted) context.sayfayaSifirla(const AnaKabuk());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -268,6 +277,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.edit_outlined),
               tooltip: 'Düzenle',
             ),
+          IconButton(
+            onPressed: _isSaving ? null : _cikisYap,
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Çıkış Yap',
+          ),
         ],
       ),
       body: _isLoading
@@ -292,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       AppColors.primary.withValues(alpha: 0.1),
                       child: Text(
                         _user!.name.isNotEmpty
-                            ? _user!.name[0].toUpperCase()
+                            ? AppHelpers.buyukHarf(_user!.name[0])
                             : '?',
                         style: TextStyle(
                           fontSize: 40,

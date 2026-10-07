@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:car_rental_mvp/core/navigation/app_page_route.dart';
+import 'package:car_rental_mvp/data/models/blog_post.dart';
 import 'package:car_rental_mvp/data/models/campaign_model.dart';
 import 'package:car_rental_mvp/data/models/vehicle.dart';
 import 'package:car_rental_mvp/data/services/auth_service.dart';
@@ -7,6 +8,7 @@ import 'package:car_rental_mvp/data/services/firestore_service.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_vehicle_form_screen.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_campaign_form_screen.dart';
 import 'package:car_rental_mvp/ui/screens/admin/admin_2fa_screen.dart';
+import 'package:car_rental_mvp/ui/screens/admin/admin_blog_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -57,7 +59,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(_sekmeDegisti);
     _yetkiDogrula();
   }
@@ -126,6 +128,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 await _firestoreService.deleteCampaign(id);
               } else if (type == 'pickup') {
                 await _firestoreService.deletePickupLocation(id);
+              } else if (type == 'blog') {
+                await _firestoreService.blogSil(id);
               }
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -173,6 +177,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           tabs: const [
             Tab(icon: Icon(Icons.directions_car), text: 'Araçlar'),
             Tab(icon: Icon(Icons.campaign), text: 'Kampanyalar'),
+            Tab(icon: Icon(Icons.article_outlined), text: 'Blog'),
             Tab(icon: Icon(Icons.location_on), text: 'Alım Yerleri'),
             Tab(icon: Icon(Icons.people), text: 'Üyeler'),
             Tab(icon: Icon(Icons.bar_chart), text: 'İstatistik'),
@@ -190,6 +195,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             firestoreService: _firestoreService,
             onDelete: (id, name) => _confirmDelete('campaign', id, name),
           ),
+          _BlogTab(
+            firestoreService: _firestoreService,
+            onDelete: (id, name) => _confirmDelete('blog', id, name),
+          ),
           _PickupLocationsTab(
             firestoreService: _firestoreService,
             onDelete: (id, name) => _confirmDelete('pickup', id, name),
@@ -202,7 +211,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         valueListenable: _aktifSekme,
         builder: (context, sekme, _) {
           // Üyeler ve İstatistik sekmelerinde ekleme yapılmaz.
-          if (sekme == 3 || sekme == 4) return const SizedBox.shrink();
+          if (sekme == 4 || sekme == 5) return const SizedBox.shrink();
 
           return FloatingActionButton.extended(
             onPressed: () {
@@ -212,6 +221,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 case 1:
                   context.sayfayaGit(const AdminCampaignFormScreen());
                 case 2:
+                  context.sayfayaGit(const AdminBlogFormScreen());
+                case 3:
                   context.sayfayaGit(const AdminPickupLocationFormScreen());
               }
             },
@@ -445,6 +456,118 @@ class _CampaignsTabState extends State<_CampaignsTab>
                       icon: Icon(Icons.delete_outline,
                           color: AppColors.error),
                       onPressed: () => widget.onDelete(c.id, c.title),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// ── Blog sekmesi ──
+class _BlogTab extends StatefulWidget {
+  final FirestoreService firestoreService;
+  final void Function(String id, String name) onDelete;
+
+  const _BlogTab({required this.firestoreService, required this.onDelete});
+
+  @override
+  State<_BlogTab> createState() => _BlogTabState();
+}
+
+class _BlogTabState extends State<_BlogTab> with AutomaticKeepAliveClientMixin {
+  late final Stream<List<BlogPost>> _stream;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestoreService.getTumBlogYazilari();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    return StreamBuilder<List<BlogPost>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Yazılar yüklenemedi: ${snapshot.error}'));
+        }
+        final yazilar = snapshot.data ?? [];
+        if (yazilar.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text(
+                'Henüz yazı yok. "Yeni Ekle" ile ilk bilgilendirme yazısını '
+                'oluşturun; "Yayında" işaretlenene kadar müşteriler görmez.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          itemCount: yazilar.length,
+          itemBuilder: (context, index) {
+            final y = yazilar[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppConstants.radiusM),
+              ),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: y.coverImageUrl.isEmpty
+                        ? Container(
+                            color: AppColors.primaryLight,
+                            child: const Icon(Icons.article_outlined,
+                                color: AppColors.primary),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: y.coverImageUrl, fit: BoxFit.cover),
+                  ),
+                ),
+                title: Text(y.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.headingMedium),
+                subtitle: Text(
+                  y.isPublished ? 'Yayında' : 'Taslak',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color:
+                        y.isPublished ? AppColors.success : AppColors.textMuted,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          color: AppColors.primary),
+                      onPressed: () =>
+                          context.sayfayaGit(AdminBlogFormScreen(yazi: y)),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, color: AppColors.error),
+                      onPressed: () => widget.onDelete(y.id, y.title),
                     ),
                   ],
                 ),
