@@ -1323,6 +1323,8 @@ class _ReservationFormSheetState extends State<_ReservationFormSheet> {
                         value: index,
                         title: Text(number['label']!,
                             style: AppTextStyles.bodyMedium),
+                        subtitle: Text(number['gorunum']!,
+                            style: AppTextStyles.bodySmall),
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                       );

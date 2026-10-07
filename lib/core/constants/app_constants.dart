@@ -1,25 +1,34 @@
 class AppConstants {
-  // ── WhatsApp ──────────────────────────────────────────────
+  // ── WhatsApp ve telefon hatları ─────────────────────────
   //
-  // TEK KAYNAK. Uygulamadan çıkan bütün WhatsApp bağlantıları bu numarayı
-  // kullanır.
+  // TEK KAYNAK. Uygulamadan çıkan bütün WhatsApp bağlantıları ve yasal
+  // metinlerdeki hat listesi (SirketBilgileri.whatsappHatti) buradan gelir.
   //
-  // Denetimde iki AYRI numara tanımlı olduğu görüldü: kampanya kartlarındaki
-  // "Bize Ulaşın" 905357605676'ya, rezervasyon talebi ise 905303739446'ya
-  // gidiyordu. Müşteri, hangi düğmeye bastığına göre farklı hatta düşüyordu.
-  // Numaralar burada birleştirildi.
+  // 07.10.2026 — Şirket iki WhatsApp Business hattı bildirdi; müşteri
+  // rezervasyonda hangisine yazacağını seçer. İki hattın da Business hesabı
+  // olduğu şirket tarafından teyit edildi (WhatsApp aktarım dayanağı yalnızca
+  // Business hesapta geçerlidir; yeni hat eklenirse yeniden teyit edilmeli).
   //
-  // Değer, sahibinden.com'daki 19 kiralama ilanının tamamında yazan
-  // "WHATSAPP BİLGİ İLETİŞİM: 0532 385 34 02" numarasıdır; aynı numara
-  // ilan sahibi kartındaki cep telefonu olarak da görünüyor.
-  //
-  // Koddaki eski iki numaranın (905357605676 ve 905303739446) HİÇBİRİ bu
-  // değildi; yani müşteriler yayındaki ilanlarda duyurulan hattan farklı
-  // numaralara yönlendiriliyordu.
-  //
-  // TODO(yayın): İşletme farklı bir hat kullanacaksa yayından önce burayı
-  // değiştirin. Ülke kodu ile, '+' ve boşluk olmadan yazılır.
+  // Numara ülke kodu ile, '+' ve boşluk olmadan yazılır.
+
+  /// Birincil hat. Kampanya kartlarının "Bize Ulaşın" düğmesi buraya yazar.
   static const String whatsappPhone = '905323853402';
+
+  /// Ofis hattı (sabit hat, WhatsApp Business).
+  static const String ofisWhatsappPhone = '903224355635';
+
+  /// Rezervasyon ekranında seçilebilen hatlar. Birden fazla hat varsa seçim
+  /// gösterilir. 'gorunum' yasal metinlerde ve ekranda yazılan biçimdir.
+  static const List<Map<String, String>> whatsappNumbers = [
+    {'label': 'Cep Hattı', 'phone': whatsappPhone, 'gorunum': '0532 385 34 02'},
+    {'label': 'Ofis Hattı', 'phone': ofisWhatsappPhone, 'gorunum': '0322 435 56 35'},
+  ];
+
+  /// Acil durum ve arama için gösterilen numaralar (tel: bağlantısı).
+  static const List<Map<String, String>> aramaNumaralari = [
+    {'label': 'Cep / Acil Durum', 'phone': '+905323853402', 'gorunum': '0532 385 34 02'},
+    {'label': 'Ofis', 'phone': '+903224355635', 'gorunum': '0322 435 56 35'},
+  ];
 
   // ── Dimensions ────────────────────────────────────────────
   static const double paddingXS = 4.0;
@@ -44,15 +53,7 @@ class AppConstants {
   static const String filterTitle = 'Araçları Filtrele';
   static const String allCategory = 'Hepsi';
 
-  // ── WhatsApp Hat Listesi ──────────────────────────────────
-  // Birden fazla hat tanımlanırsa rezervasyon ekranında kullanıcıya seçim
-  // sunulur; tek hat varsa seçim gösterilmez. Numaralar [whatsappPhone]
-  // üzerinden gelir ki iki ayrı yerde farklı numara tutulamasın.
-  static const List<Map<String, String>> whatsappNumbers = [
-    {'label': 'Hat 1 - Ofis', 'phone': whatsappPhone},
-  ];
-
-// WhatsApp mesaj şablonu (müşteri bilgili + alım yeri versiyon)
+  // WhatsApp mesaj şablonu (müşteri bilgili + alım yeri versiyon)
   //
   // T.C. Kimlik No satırı YALNIZCA alan doldurulduysa eklenir. Aydınlatma
   // metni "bu alanı doldurursanız mesaja eklenir" diyor; boşken mesajda

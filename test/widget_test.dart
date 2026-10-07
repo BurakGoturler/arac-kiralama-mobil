@@ -371,6 +371,16 @@ void main() {
       }
     });
 
+    test('yasal metinler uygulamanın yazdığı her WhatsApp hattını saymalı', () {
+      // Aydınlatma metni hangi hatlara veri gittiğini söyler. Uygulamaya
+      // hat eklenip metne eklenmezse veri, metinde geçmeyen bir hatta gider.
+      for (final hat in AppConstants.whatsappNumbers) {
+        expect(SirketBilgileri.whatsappHatti, contains(hat['gorunum']));
+        expect(hat['phone'], matches(RegExp(r'^90\d{10}$')));
+        expect(LegalTexts.aydinlatmaMetni, contains(hat['gorunum']));
+      }
+    });
+
     test('rezervasyonun yalnızca WhatsApp\'tan alındığı açıkça yazmalı', () {
       expect(LegalTexts.kullanimKosullariMetni,
           contains('YALNIZCA ${SirketBilgileri.whatsappHatti}'));

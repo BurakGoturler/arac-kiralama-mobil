@@ -16,6 +16,8 @@
 //         bir çalışmadır, hukuki görüş değildir.
 // ═══════════════════════════════════════════════════════════════════
 
+import 'app_constants.dart';
+
 import 'kvkk_envanter.dart';
 
 class SirketBilgileri {
@@ -65,10 +67,12 @@ class SirketBilgileri {
   /// Uyuşmazlıklarda yetkili mahkeme ve icra daireleri.
   static const String yetkiliMahkeme = 'Adana';
 
-  /// Rezervasyon taleplerinin alındığı WhatsApp Business hattı (görünen biçim).
-  /// Numaranın kendisi AppConstants.whatsappPhone'dadır; ikisi aynı hattı
-  /// göstermelidir.
-  static const String whatsappHatti = '0 (532) 385 34 02';
+  /// Rezervasyon taleplerinin alındığı WhatsApp Business hatları (görünen
+  /// biçim). AppConstants.whatsappNumbers'tan üretilir; metinlerdeki hat
+  /// listesi ile uygulamanın gerçekten yazdığı hatlar ayrışamaz.
+  static String get whatsappHatti => AppConstants.whatsappNumbers
+      .map((h) => h['gorunum']!)
+      .join(' ve ');
 
   /// Gizlilik politikasının yayınlandığı herkese açık adres.
   /// Google Play ve App Store bunu şart koşar.
@@ -109,9 +113,10 @@ class SirketBilgileri {
   /// Koşulları'nın kabulünü sözleşmenin akdi sayar.
   ///
   /// Doldurmadan önce:
-  ///   1. ✓ 14.09.2026 — 0532 385 34 02 hattının WhatsApp BUSINESS hesabı
-  ///      olduğu şirket tarafından teyit edildi (kişisel hesapta bu ek
-  ///      uygulanmaz; hat değişirse yeniden teyit edilmeli).
+  ///   1. ✓ 14.09.2026 — 0532 385 34 02 ve ✓ 07.10.2026 — 0322 435 56 35
+  ///      hatlarının WhatsApp BUSINESS hesabı olduğu şirket tarafından teyit
+  ///      edildi (kişisel hesapta bu ek uygulanmaz; hat eklenir veya
+  ///      değişirse yeniden teyit edilmeli).
   ///   2. Avukat, Koşulların kabulüyle akdedilen standart sözleşmenin
   ///      yönetmelikteki imza şartını karşıladığını teyit etmeli.
   ///   3. Standart sözleşme 5 iş günü içinde Kurum'a bildirilmeli
@@ -124,7 +129,7 @@ class SirketBilgileri {
 
   /// Metinlerin son güncellenme tarihi. Onay kayıtlarında metin sürümü olarak
   /// da saklanır.
-  static const String sonGuncelleme = '14.09.2026';
+  static const String sonGuncelleme = '07.10.2026';
 
   /// Yer tutucuların doldurulup doldurulmadığını anlamak için.
   static bool get eksikBilgiVar => doldurulmamisAlanlar.isNotEmpty;
@@ -306,7 +311,7 @@ Google Firebase: Uygulamanın teknik altyapısı Google tarafından sunulan Fire
 
 ${SirketBilgileri.firebaseAktarimDayanagi}
 
-WhatsApp Business: Rezervasyon talepleri ve teyit yazışmaları YALNIZCA Şirket'in ${SirketBilgileri.whatsappHatti} numaralı WhatsApp Business hattı üzerinden yürütülür. WhatsApp bu hizmeti Şirket'e veri işleyen sıfatıyla sunar; sunucuları yurt dışında bulunduğundan yazışmalarınızdaki kişisel veriler KVKK m.9 kapsamında yurt dışına aktarılır. Bu aktarım AÇIK RIZAYA DAYANMAZ; aşağıdaki uygun güvenceye dayanılarak yapılmaktadır:
+WhatsApp Business: Rezervasyon talepleri ve teyit yazışmaları YALNIZCA Şirket'in ${SirketBilgileri.whatsappHatti} numaralı WhatsApp Business hatları üzerinden yürütülür. WhatsApp bu hizmeti Şirket'e veri işleyen sıfatıyla sunar; sunucuları yurt dışında bulunduğundan yazışmalarınızdaki kişisel veriler KVKK m.9 kapsamında yurt dışına aktarılır. Bu aktarım AÇIK RIZAYA DAYANMAZ; aşağıdaki uygun güvenceye dayanılarak yapılmaktadır:
 
 ${SirketBilgileri.whatsappAktarimDayanagi}
 
@@ -439,7 +444,7 @@ Bu koşullar, ${SirketBilgileri.unvan} tarafından sunulan Şenbayrak Araç Kira
 
 Uygulama, araç kiralama filosunun görüntülenmesini ve rezervasyon TALEBİNİN WhatsApp hattımıza iletilmesini sağlar. Uygulama üzerinden kiralama yapılmaz ve kiralama sözleşmesi kurulmaz.
 
-Rezervasyon talepleri YALNIZCA ${SirketBilgileri.whatsappHatti} numaralı WhatsApp hattımız üzerinden alınır ve teyit edilir. Rezervasyon talebi gönderebilmek için cihazınızda WhatsApp uygulamasının yüklü olması gerekir.
+Rezervasyon talepleri YALNIZCA ${SirketBilgileri.whatsappHatti} numaralı WhatsApp hatlarımız üzerinden alınır ve teyit edilir. Rezervasyon talebi gönderebilmek için cihazınızda WhatsApp uygulamasının yüklü olması gerekir.
 
 WhatsApp hattımıza iletilen talep bir REZERVASYON GARANTİSİ DEĞİLDİR. Rezervasyonunuz, Şirket tarafından WhatsApp yazışması üzerinden teyit edilmesi ve ödemenin tamamlanmasıyla kesinleşir; kiralama sözleşmesi şubede kimlik ve sürücü belgesi ibrazıyla kurulur. Uygulamada gösterilen günlük fiyatlar bilgilendirme amaçlıdır; nihai fiyat, kiralama süresi, ek hizmetler ve güncel koşullara göre teyit sırasında bildirilir.
 
@@ -576,7 +581,7 @@ Bu politika, ${SirketBilgileri.unvan} ("Şirket") tarafından araç kiralama faa
 3. KAYIT ORTAMLARI
 
 • Google Firebase — Cloud Firestore ve Authentication (elektronik; sunucular AB içinde, Belçika)
-• Şirket WhatsApp Business hattı (${SirketBilgileri.whatsappHatti}) ve bu hattın kullanıldığı cihaz (elektronik)
+• Şirket WhatsApp Business hatları (${SirketBilgileri.whatsappHatti}) ve bu hatların kullanıldığı cihazlar (elektronik)
 • Şube fiziki arşivi (kâğıt)
 • Muhasebe kayıtları (fiziki ve elektronik)
 • İleti Yönetim Sistemi (İYS) — ticari elektronik ileti onay ve ret kayıtları (elektronik)

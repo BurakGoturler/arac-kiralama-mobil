@@ -16,7 +16,7 @@ class FaqMockData {
     ),
     FaqItemModel(
       question: 'Kaza veya arıza durumunda ne yapmalıyım?',
-      answer: 'Kaza veya arıza durumunda, aracınızı güvenli bir yere çekerek derhal 7/24 hizmet veren acil durum hattımızı aramanız gerekmektedir.',
+      answer: 'Kaza veya arıza durumunda aracınızı güvenli bir yere çekin ve derhal 0532 385 34 02 numaralı acil durum hattımızı ya da 0322 435 56 35 numaralı ofisimizi arayın.',
     ),
     FaqItemModel(
       question: 'Aracı farklı bir lokasyona bırakabilir miyim?',
